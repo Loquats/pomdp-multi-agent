@@ -66,6 +66,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         These attributes should not be changed after initialization.
         """
         self.render_mode = render_mode
+        print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
         self.max_timesteps = 100
 
@@ -103,11 +104,11 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         self.you.x = 0
         self.you.y = 0
 
-        # self.opp.x = self.num_x_cells - 1
-        # self.opp.y = self.num_y_cells - 1
+        self.opp.x = self.num_x_cells - 1
+        self.opp.y = self.num_y_cells - 1
 
-        self.opp.x = 3
-        self.opp.y = 5
+        # self.opp.x = 3
+        # self.opp.y = 5
 
         observations = self.get_full_observations()
 
@@ -124,7 +125,8 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         }
         return observations
 
-    def move(self, agent, direction: MoveDir):
+    def move(self, agent, direction: int):
+        direction = MoveDir(direction)
         if direction == MoveDir.N and agent.y > 0:
             agent.y -= 1
         elif direction == MoveDir.E and agent.x < self.num_x_cells - 1:
@@ -133,6 +135,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             agent.y += 1
         elif direction == MoveDir.W and agent.x > 0:
             agent.x -= 1
+
 
     def get_action_mask(self, agent):
         action_mask = np.ones(4, dtype=np.int8)
@@ -203,7 +206,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             grid[self.opp.y, self.opp.x] = "O"
             print(f"{grid} \n")
 
-        if "human" in self.render_mode: 
+        if "human" in self.render_mode:
             self.grid.redraw()
             self.grid.clock.tick(1)
 

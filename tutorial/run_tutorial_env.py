@@ -13,7 +13,7 @@ def make_env(render_mode=None):
     # env = raw_env(render_mode=internal_render_mode)
 
     # env = tutorial_env.CustomEnvironment()
-    env = tutorial_action_mask_env.CustomActionMaskedEnvironment()
+    env = tutorial_action_mask_env.CustomActionMaskedEnvironment(render_mode=render_mode)
 
     # This wrapper is only for environments which print results to the terminal
     if render_mode == "ansi":
