@@ -2,6 +2,7 @@ import tutorial_action_mask_env
 from custom_utils import *
 from policies import *
 from tqdm import tqdm
+
 policy = random_policy
 
 wins = {
@@ -44,7 +45,7 @@ for i in tqdm(range(num_iterations)):
         wins["neither"] += 1
         timesteps["neither"].append(env.timestep)
     # print(f"you win: {you_win}, opp win: {opp_win}")
-    env.timestep
+    env.close()
 
 print(wins)
 for outcome in wins.keys():
@@ -56,4 +57,3 @@ for outcome in timesteps.keys():
 print(f"mean timesteps overall: {np.mean(timesteps['you'] + timesteps['opp'] + timesteps['both'] + timesteps['neither'])}")
 
 assert sum(wins.values()) == num_iterations
-env.close()

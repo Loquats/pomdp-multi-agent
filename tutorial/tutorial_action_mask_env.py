@@ -127,8 +127,8 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         """
         observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
         observations = {
-            "you": {"observation": observation},
-            "opp": {"observation": observation},
+            "you": observation,
+            "opp": observation,
         }
         return observations
 
