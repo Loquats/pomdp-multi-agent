@@ -22,6 +22,8 @@ from gridworld.grid import Grid
 from custom_utils import *
 from text_grid import TextGrid
 
+RENDER_FPS = 1
+
 def make_env(render_mode=None):
     """
     The env function often wraps the environment in wrappers by default.
@@ -46,11 +48,6 @@ def make_env(render_mode=None):
     return env
 
 class CustomActionMaskedEnvironment(ParallelEnv):
-    metadata = {
-        "name": "custom_environment_v0",
-        "render_fps": 10,
-        "render_modes": ["pygame", "text", "none"],
-    }
 
     def __init__(self, render_mode="none", max_timesteps=1000):
         """The init method takes in environment arguments.
@@ -65,6 +62,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         These attributes should not be changed after initialization.
         """
+        assert render_mode in ["pygame", "text", "none"]
         self.render_mode = render_mode
         # print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
@@ -238,7 +236,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         if "pygame" in self.render_mode:
             self.grid.redraw()
-            self.grid.clock.tick(self.metadata["render_fps"])
+            self.grid.clock.tick(RENDER_FPS)
 
     def close(self):
         self.grid.done()

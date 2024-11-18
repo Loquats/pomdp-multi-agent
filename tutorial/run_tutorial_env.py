@@ -3,7 +3,7 @@ from custom_utils import *
 from policies import *
 from pettingzoo.utils import wrappers
 
-env = tutorial_action_mask_env.make_env(render_mode="none")
+env = tutorial_action_mask_env.make_env(render_mode="pygame")
 observations, infos = env.reset()
 print(env.action_space(env.agent_names[0]))
 print(env.action_space(env.agent_names[1]))
@@ -23,7 +23,7 @@ while env.agent_names:
     # print("truncation:", any(truncations.values()))
     # print("info:", infos)
 
-    break
+    # break
     # import pdb; pdb.set_trace()
     # import time; time.sleep(10000)
 env.close()
