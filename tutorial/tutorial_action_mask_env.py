@@ -20,6 +20,7 @@ from pettingzoo import ParallelEnv
 from gridworld.grid import Grid
 
 from custom_utils import *
+from text_grid import TextGrid
 
 def make_env(render_mode=None):
     """
@@ -48,7 +49,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
     metadata = {
         "name": "custom_environment_v0",
         "render_fps": 10,
-        "render_modes": ["human", "text", "human_text", "none"],
+        "render_modes": ["pygame", "text", "none"],
     }
 
     def __init__(self, render_mode="none", max_timesteps=1000):
@@ -65,7 +66,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         These attributes should not be changed after initialization.
         """
         self.render_mode = render_mode
-        print(f"init env with render_mode: {self.render_mode}")
+        # print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
         self.max_timesteps = max_timesteps
 
@@ -76,8 +77,12 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         self.num_cols = 20
         self.num_rows = 10
-        cell_px = 30
-        self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
+
+        if "pygame" in self.render_mode:
+            cell_px = 30
+            self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
+        else:
+            self.grid = TextGrid(self.num_cols, self.num_rows)
 
 
     def _seed(self, seed=None):
@@ -177,12 +182,12 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             self.move(agent, movement_action)
             self.gaze(agent, gaze_action)
 
-        you_reward, you_terminated = self.get_rewards(self.you, self.opp)
-        opp_reward, opp_terminated = self.get_rewards(self.opp, self.you)
+        you_reward, you_win = self.get_rewards(self.you, self.opp)
+        opp_reward, opp_win = self.get_rewards(self.opp, self.you)
 
         rewards = {self.you.name: you_reward, self.opp.name: opp_reward}
-        terminations = {a.name: you_terminated or opp_terminated for a in self.agents}
-        if you_terminated or opp_terminated:
+        terminations = {a.name: you_win or opp_win for a in self.agents}
+        if you_win or opp_win:
             self.agents = []
             self.agent_names = []
 
@@ -195,9 +200,11 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             self.agent_names = []
 
         observations = self.get_full_observations()
-
-        # Get dummy infos (not used in this example)
-        infos = {a.name: {} for a in self.agents}
+        
+        infos = {
+            self.you.name: {"win": you_win},
+            self.opp.name: {"win": opp_win},
+        }
 
         self.update_grid()
         self.render()
@@ -227,13 +234,9 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
     def render(self):
         if "text" in self.render_mode:
-            # TODO: convert grid to string, instead of doing this manually
-            grid = np.zeros((self.num_cols, self.num_rows))
-            grid[self.you.col, self.you.row] = "Y"
-            grid[self.opp.col, self.opp.row] = "O"
-            print(f"{grid} \n")
+            self.grid.print()
 
-        if "human" in self.render_mode:
+        if "pygame" in self.render_mode:
             self.grid.redraw()
             self.grid.clock.tick(self.metadata["render_fps"])
 

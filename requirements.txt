@@ -1,0 +1,2 @@
+pettingzoo[mpe]
+git+https://github.com/hpharmsen/gridworld
