@@ -19,31 +19,30 @@ from pettingzoo.utils.agent_selector import agent_selector
 from pettingzoo import ParallelEnv
 from gridworld.grid import Grid
 
-class MoveDir(Enum):
-    N = 0
-    E = 1
-    S = 2
-    W = 3
+from custom_utils import *
 
-class GazeDir(Enum):
-    N = 0
-    NE = 1
-    E = 2
-    SE = 3
-    S = 4
-    SW = 5
-    W = 6
-    NW = 7
+def make_env(render_mode=None):
+    """
+    The env function often wraps the environment in wrappers by default.
+    You can find full documentation for these methods
+    elsewhere in the developer documentation.
+    """
+    # internal_render_mode = render_mode if render_mode != "ansi" else "human"
+    # env = raw_env(render_mode=internal_render_mode)
 
-class Agent:
-    def __init__(self, name):
-        self.name = name
-        self.x = None
-        self.y = None
-        self.gaze = None
+    env = CustomActionMaskedEnvironment(render_mode=render_mode)
 
-    def __str__(self):
-        return f"{self.name} at ({self.x}, {self.y})"
+    # This wrapper is only for environments which print results to the terminal
+    if render_mode == "ansi":
+        env = wrappers.CaptureStdoutWrapper(env)
+    # this wrapper helps error handling for discrete action spaces
+    # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
+
+    # Provides a wide vareity of helpful user errors
+    # Strongly recommended
+    # env = wrappers.OrderEnforcingWrapper(env)
+
+    return env
 
 class CustomActionMaskedEnvironment(ParallelEnv):
     metadata = {
@@ -75,10 +74,10 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         self.agent_names = [self.you.name, self.opp.name]
         self.agents = [self.you, self.opp]
 
-        self.num_x_cells = 20
-        self.num_y_cells = 10
+        self.num_cols = 20
+        self.num_rows = 10
         cell_px = 30
-        self.grid = Grid(self.num_x_cells, self.num_y_cells, cell_px, cell_px, title="custom game", margin=1)
+        self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
 
 
     def _seed(self, seed=None):
@@ -103,12 +102,11 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         self.you.x = 0
         self.you.y = 0
+        self.you.gaze = GazeActions.SE
 
-        self.opp.x = self.num_x_cells - 1
-        self.opp.y = self.num_y_cells - 1
-
-        # self.opp.x = 3
-        # self.opp.y = 5
+        self.opp.x = self.num_cols - 1
+        self.opp.y = self.num_rows - 1
+        self.opp.gaze = GazeActions.NW
 
         observations = self.get_full_observations()
 
@@ -118,36 +116,51 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         return observations, infos
 
     def get_full_observations(self):
+        """
+        TODO: should we observe the gaze?
+        TODO: should we have action masks?
+        """
         observation = (self.you.x, self.you.y, self.opp.x, self.opp.y)
+        # observations = {
+        #     "you": {"observation": observation, "action_mask": self.get_action_mask(self.you)},
+        #     "opp": {"observation": observation, "action_mask": self.get_action_mask(self.opp)},
+        # }
         observations = {
-            "you": {"observation": observation, "action_mask": self.get_action_mask(self.you)},
-            "opp": {"observation": observation, "action_mask": self.get_action_mask(self.opp)},
+            "you": {"observation": observation},
+            "opp": {"observation": observation},
         }
         return observations
 
     def move(self, agent, direction: int):
-        direction = MoveDir(direction)
-        if direction == MoveDir.N and agent.y > 0:
+        direction = MovementActions(direction)
+        if direction == MovementActions.N and agent.y > 0:
             agent.y -= 1
-        elif direction == MoveDir.E and agent.x < self.num_x_cells - 1:
+        elif direction == MovementActions.E and agent.x < self.num_cols - 1:
             agent.x += 1
-        elif direction == MoveDir.S and agent.y < self.num_y_cells - 1:
+        elif direction == MovementActions.S and agent.y < self.num_rows - 1:
             agent.y += 1
-        elif direction == MoveDir.W and agent.x > 0:
+        elif direction == MovementActions.W and agent.x > 0:
             agent.x -= 1
 
+    def gaze(self, agent, direction: int):
+        direction = GazeActions(direction)
+        agent.gaze = direction
 
-    def get_action_mask(self, agent):
-        action_mask = np.ones(4, dtype=np.int8)
-        if agent.x == 0:
-            action_mask[3] = 0  # Block W movement
-        elif agent.x == self.num_x_cells - 1:
-            action_mask[1] = 0  # Block E movement
-        if agent.y == 0:
-            action_mask[0] = 0  # Block N movement
-        elif agent.y == self.num_y_cells - 1:
-            action_mask[2] = 0  # Block S movement
-        return action_mask
+
+    # def get_action_mask(self, agent):
+    #     action_mask = np.ones(4, dtype=np.int8)
+    #     if agent.x == 0:
+    #         action_mask[3] = 0  # Block W movement
+    #     elif agent.x == self.num_x_cells - 1:
+    #         action_mask[1] = 0  # Block E movement
+    #     if agent.y == 0:
+    #         action_mask[0] = 0  # Block N movement
+    #     elif agent.y == self.num_y_cells - 1:
+    #         action_mask[2] = 0  # Block S movement
+    #     return action_mask
+
+    def get_reward(self, agent):
+        pass
 
     def step(self, actions):
         """Takes in an action for the current agent (specified by agent_selection).
@@ -162,8 +175,10 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         And any internal state used by observe() or render()
         """
-        self.move(self.you, actions[self.you.name])
-        self.move(self.opp, actions[self.opp.name])
+        for agent in self.agents:
+            movement_action, gaze_action = index_to_action(actions[agent.name])
+            self.move(agent, movement_action)
+            self.gaze(agent, gaze_action)
 
         # Check termination conditions
         terminations = {a.name: False for a in self.agents}
@@ -192,16 +207,31 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         infos = {a.name: {} for a in self.agents}
 
         self.grid.clear_all()
+        self.draw_gazes()
         self.grid[self.you.x, self.you.y] = "Y"
-        self.grid[self.opp.x, self.opp.y] = "O"
+        self.grid[self.opp.x, self.opp.y] = "A"
+
         self.render()
 
         return observations, rewards, terminations, truncations, infos
 
+    def draw_gazes(self):
+        you_gaze_mask = self.you.get_gaze_mask(self.num_rows, self.num_cols)
+        opp_gaze_mask = self.opp.get_gaze_mask(self.num_rows, self.num_cols)
+
+        for row in range(self.num_rows):
+            for col in range(self.num_cols):
+                if you_gaze_mask[row, col] == 1 and opp_gaze_mask[row, col] == 1:
+                    self.grid[col, row] = "x"
+                elif you_gaze_mask[row, col] == 1:
+                    self.grid[col, row] = "y"
+                elif opp_gaze_mask[row, col] == 1:
+                    self.grid[col, row] = "a"
+
 
     def render(self):
         if "text" in self.render_mode:
-            grid = np.zeros((self.num_x_cells, self.num_y_cells))
+            grid = np.zeros((self.num_cols, self.num_rows))
             grid[self.you.y, self.you.x] = "Y"
             grid[self.opp.y, self.opp.x] = "O"
             print(f"{grid} \n")
@@ -225,4 +255,4 @@ class CustomActionMaskedEnvironment(ParallelEnv):
     # If your spaces change over time, remove this line (disable caching).
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
-        return Discrete(4)
+        return Discrete(len(MovementActions) * len(GazeActions))
