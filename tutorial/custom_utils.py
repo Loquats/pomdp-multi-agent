@@ -1,4 +1,5 @@
 from enum import Enum
+import functools
 
 import numpy as np
 
@@ -34,41 +35,46 @@ class GazeActions(Enum):
 class Agent:
     def __init__(self, name):
         self.name = name
-        self.x = None
-        self.y = None
+        self.row = None
+        self.col = None
         self.gaze = None
+        self.num_steps_seeing = 0
 
     def __str__(self):
-        return f"{self.name} at ({self.x}, {self.y})"
+        return f"{self.name} at ({self.row}, {self.col})"
+        
+@functools.lru_cache(maxsize=128)
+def get_gaze_mask(row, col, gaze, rows, cols):
+    """
+    Returns a binary numpy array with 1 if cell is in agent's gaze, 0 otherwise.
+    Array dimension is (num_y_cells, num_x_cells). <- important!
+    """
+    gaze_mask = np.zeros((rows, cols))
     
-    def get_gaze_mask(self, rows, cols):
-        """
-        Returns a binary numpy array with 1 if cell is in agent's gaze, 0 otherwise.
-        Array dimension is (num_y_cells, num_x_cells). <- important!
-        """
-        gaze_mask = np.zeros((rows, cols))
-        
-        if self.gaze == GazeActions.SE:
-            top_left = (self.y, self.x)
-        elif self.gaze == GazeActions.SW:
-            top_left = (self.y, self.x - (GAZE_DISTANCE - 1))
-        elif self.gaze == GazeActions.NW:
-            top_left = (self.y - (GAZE_DISTANCE - 1), self.x - (GAZE_DISTANCE - 1))
-        elif self.gaze == GazeActions.NE:
-            top_left = (self.y - (GAZE_DISTANCE - 1), self.x)
-        else:
-            raise ValueError(f"Unknown gaze direction: {self.gaze}")
-        
-        for row in range(GAZE_DISTANCE):
-            cur_row = top_left[0] + row
-            if cur_row < 0 or cur_row >= rows:
+    if gaze == GazeActions.SE:
+        top_left = (row, col)
+    elif gaze == GazeActions.SW:
+        top_left = (row, col - (GAZE_DISTANCE - 1))
+    elif gaze == GazeActions.NW:
+        top_left = (row - (GAZE_DISTANCE - 1), col - (GAZE_DISTANCE - 1))
+    elif gaze == GazeActions.NE:
+        top_left = (row - (GAZE_DISTANCE - 1), col)
+    else:
+        raise ValueError(f"Unknown gaze direction: {gaze}")
+    
+    for row in range(GAZE_DISTANCE):
+        cur_row = top_left[0] + row
+        if cur_row < 0 or cur_row >= rows:
+            continue
+        for col in range(GAZE_DISTANCE):
+            cur_col = top_left[1] + col
+            if cur_col < 0 or cur_col >= cols:
                 continue
-            for col in range(GAZE_DISTANCE):
-                cur_col = top_left[1] + col
-                if cur_col < 0 or cur_col >= cols:
-                    continue
-                gaze_mask[cur_row, cur_col] = 1
-        return gaze_mask
+            gaze_mask[cur_row, cur_col] = 1
+    return gaze_mask
+    
+def is_visible(gaze_mask, row, col):
+    return gaze_mask[row, col] == 1
 
 def index_to_action(index):
     """
