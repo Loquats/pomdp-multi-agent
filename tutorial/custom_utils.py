@@ -5,6 +5,10 @@ import numpy as np
 
 #gaze is a 5x5 square with agent at a corner
 GAZE_DISTANCE = 5
+NUM_SEEING_STEPS_TO_WIN = 3
+WIN_REWARD = 100
+SEE_REWARD = 1
+DEFAULT_REWARD = 0
 
 class MovementActions(Enum):
     DO_NOTHING = 0

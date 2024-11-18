@@ -74,7 +74,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         self.agent_names = [self.you.name, self.opp.name]
         self.agents = [self.you, self.opp]
 
-        self.num_cols = 10
+        self.num_cols = 20
         self.num_rows = 10
         cell_px = 30
         self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
@@ -121,10 +121,6 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         TODO: should we have action masks?
         """
         observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
-        # observations = {
-        #     "you": {"observation": observation, "action_mask": self.get_action_mask(self.you)},
-        #     "opp": {"observation": observation, "action_mask": self.get_action_mask(self.opp)},
-        # }
         observations = {
             "you": {"observation": observation},
             "opp": {"observation": observation},
@@ -156,13 +152,13 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         if is_visible(gaze_mask, other_agent.row, other_agent.col):
             agent.num_steps_seeing += 1
-            if agent.num_steps_seeing == 2:
-                return 100, True
+            if agent.num_steps_seeing == NUM_SEEING_STEPS_TO_WIN:
+                return WIN_REWARD, True
             else:
-                return 1, False
+                return SEE_REWARD, False
         else:
             agent.num_steps_seeing = 0
-            return 0, False
+            return DEFAULT_REWARD, False
 
     def step(self, actions):
         """Takes in an action for the current agent (specified by agent_selection).
@@ -193,7 +189,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         # Check truncation conditions (overwrites termination conditions)
         truncations = {a.name: False for a in self.agents}
         if self.timestep > self.max_timesteps:
-            rewards = {a.name: 0 for a in self.agents}
+            rewards = {a.name: DEFAULT_REWARD for a in self.agents}
             truncations = {a.name: True for a in self.agents}
             self.agents = []
             self.agent_names = []
