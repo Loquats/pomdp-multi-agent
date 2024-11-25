@@ -59,14 +59,18 @@ def get_top_left(gaze, row, col):
     else:
         raise ValueError(f"Unknown gaze direction: {gaze}")
     
-def get_gaze_bounds(gaze, row, col):
+def get_gaze_bounds(gaze, row, col, num_rows, num_cols):
     """
     Returns the bounds of the gaze area as a tuple of 4 integers:
     (min_row, min_col, max_row, max_col)
     The max_row and max_col are inclusive.
     """
     min_row, min_col = get_top_left(gaze, row, col)
-    return (min_row, min_col, min_row + GAZE_DISTANCE, min_col + GAZE_DISTANCE)
+    min_row = max(min_row, 0)
+    min_col = max(min_col, 0)
+    max_row = min(min_row + GAZE_DISTANCE, num_rows-1)
+    max_col = min(min_col + GAZE_DISTANCE, num_cols-1)
+    return (min_row, min_col, max_row, max_col)
 
 @functools.lru_cache(maxsize=128)
 def get_gaze_mask(row, col, gaze, rows, cols):
@@ -94,7 +98,7 @@ def is_visible(gaze_mask, row, col):
     return gaze_mask[row, col] == 1
 
 def in_gaze_box(my_row, my_col, my_gaze_action, target_row, target_col, num_rows, num_cols):    
-    min_row, min_col, max_row, max_col = get_gaze_bounds(my_gaze_action, my_row, my_col)
+    min_row, min_col, max_row, max_col = get_gaze_bounds(my_gaze_action, my_row, my_col, num_rows, num_cols)
     return min_row <= target_row <= max_row and min_col <= target_col <= max_col
 
 def index_to_action(index):

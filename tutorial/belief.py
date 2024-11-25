@@ -1,5 +1,5 @@
 import numpy as np
-from custom_utils import in_gaze_box
+from custom_utils import get_gaze_bounds
 
 class DiscreteStateFilter:
     def __init__(self, num_rows, num_cols):
@@ -36,32 +36,29 @@ class DiscreteStateFilter:
             at the very end, normalize the belief
             """
             new_belief = np.zeros_like(self.belief)
-            num_rows, num_cols = self.belief.shape
-            for row in range(num_rows):
-                for col in range(num_cols):
-                    # get valid recipients, which are not in gaze box
+            for row in range(self.num_rows):
+                for col in range(self.num_cols):
+                    # get valid recipients
                     valid_recipients = []
                     for drow, dcol in [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]:
-                        target_row = row + drow
-                        target_col = col + dcol
+                        recipient_row = row + drow
+                        recipient_col = col + dcol
 
-                        if not self.is_valid(target_row, target_col):
-                            continue
-                        elif in_gaze_box(my_row, my_col, my_gaze_action, target_row, target_col, num_rows, num_cols):
-                            continue
-                        else:
-                            valid_recipients.append((target_row, target_col))
-                        
-                    if len(valid_recipients) == 0:
-                        # poof, the mass disappears
-                        # it'll get fixed during normalization
-                        continue
-                    # else, diffuse the mass
+                        if self.is_valid(recipient_row, recipient_col):
+                            valid_recipients.append((recipient_row, recipient_col))
+
+                    # diffuse the mass
                     parcel = self.belief[row, col] / len(valid_recipients)
                     for recipient_row, recipient_col in valid_recipients:
                         new_belief[recipient_row, recipient_col] += parcel
+
+            # zero out the gaze box
+            min_row, min_col, max_row, max_col = get_gaze_bounds(my_gaze_action, my_row, my_col, self.num_rows, self.num_cols)
+            for row in range(min_row, max_row+1):
+                for col in range(min_col, max_col+1):
+                    new_belief[row, col] = 0
             
-            # Normalize to probability distribution. Is this really necessary?
+            # Normalize to probability distribution. Is this really necessary? Probably yes, to avoid precision issues.
             self.belief = new_belief / np.sum(new_belief)
         else:
             print("SEE OPPONENT")

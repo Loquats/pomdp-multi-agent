@@ -39,7 +39,7 @@ while env.agent_names:
     # print("truncation:", any(truncations.values()))
     # print("info:", infos)
 
-    break
+    # break
     # import pdb; pdb.set_trace()
     # import time; time.sleep(10000)
 env.close()
