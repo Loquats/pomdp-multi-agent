@@ -1,13 +1,15 @@
-import tutorial_action_mask_env
+from tutorial_action_mask_env import MarkovGameEnvironment
 from custom_utils import *
 from policies import *
 from pettingzoo.utils import wrappers
 
-env = tutorial_action_mask_env.make_env(render_mode="pygame")
+env = MarkovGameEnvironment(fully_observable=True, render_mode="pygame")
 observations, infos = env.reset()
+print(f"Agent names: {env.agent_names}")
+print("Action spaces:")
 print(env.action_space(env.agent_names[0]))
 print(env.action_space(env.agent_names[1]))
-print(observations)
+print(f"Observations: {observations}")
 
 while env.agent_names:
     # this is where you would insert your policy

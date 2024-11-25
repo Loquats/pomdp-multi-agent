@@ -11,3 +11,4 @@ def heuristic_policy(observation, action_space, agent):
 
 def random_policy(action_space):
     return action_space.sample()
+

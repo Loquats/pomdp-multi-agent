@@ -24,32 +24,32 @@ from text_grid import TextGrid
 
 RENDER_FPS = 1
 
-def make_env(render_mode=None):
-    """
-    The env function often wraps the environment in wrappers by default.
-    You can find full documentation for these methods
-    elsewhere in the developer documentation.
-    """
-    # internal_render_mode = render_mode if render_mode != "ansi" else "human"
-    # env = raw_env(render_mode=internal_render_mode)
+# def make_env(render_mode=None):
+#     """
+#     The env function often wraps the environment in wrappers by default.
+#     You can find full documentation for these methods
+#     elsewhere in the developer documentation.
+#     """
+#     # internal_render_mode = render_mode if render_mode != "ansi" else "human"
+#     # env = raw_env(render_mode=internal_render_mode)
 
-    env = CustomActionMaskedEnvironment(render_mode=render_mode)
+#     env = CustomActionMaskedEnvironment(render_mode=render_mode)
 
-    # This wrapper is only for environments which print results to the terminal
-    if render_mode == "ansi":
-        env = wrappers.CaptureStdoutWrapper(env)
-    # this wrapper helps error handling for discrete action spaces
-    # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
+#     # This wrapper is only for environments which print results to the terminal
+#     if render_mode == "ansi":
+#         env = wrappers.CaptureStdoutWrapper(env)
+#     # this wrapper helps error handling for discrete action spaces
+#     # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
 
-    # Provides a wide vareity of helpful user errors
-    # Strongly recommended
-    # env = wrappers.OrderEnforcingWrapper(env)
+#     # Provides a wide vareity of helpful user errors
+#     # Strongly recommended
+#     # env = wrappers.OrderEnforcingWrapper(env)
 
-    return env
+#     return env
 
-class CustomActionMaskedEnvironment(ParallelEnv):
+class MarkovGameEnvironment(ParallelEnv):
 
-    def __init__(self, render_mode="none", max_timesteps=1000):
+    def __init__(self, fully_observable: bool, render_mode="none", max_timesteps=1000):
         """The init method takes in environment arguments.
 
         Should define the following attributes:
@@ -62,6 +62,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         These attributes should not be changed after initialization.
         """
+        self.fully_observable = fully_observable
         assert render_mode in ["pygame", "text", "none"]
         self.render_mode = render_mode
         # print(f"init env with render_mode: {self.render_mode}")
@@ -111,7 +112,10 @@ class CustomActionMaskedEnvironment(ParallelEnv):
         self.opp.col = self.num_cols - 1
         self.opp.gaze = GazeActions.NW
 
-        observations = self.get_full_observations()
+        if self.fully_observable:
+            observations = self.get_full_observations()
+        else:
+            observations = self.get_partial_observations()
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
@@ -120,13 +124,31 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
     def get_full_observations(self):
         """
-        TODO: should we observe the gaze?
-        TODO: should we have action masks?
+        !!! the order is always (this_agent_observations..., other_agent_observations...)
         """
-        observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
         observations = {
-            "you": observation,
-            "opp": observation,
+            "you": (self.you.row, self.you.col, self.opp.row, self.opp.col),
+            "opp": (self.opp.row, self.opp.col, self.you.row, self.you.col),
+        }
+        return observations
+    
+    def get_partial_observations(self):
+        """
+        !!! the order is always (this_agent_observations..., other_agent_observations...)
+        """
+        if in_gaze_box(self.you.row, self.you.col, self.you.gaze, self.opp.row, self.opp.col, self.num_rows, self.num_cols):
+            you_observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
+        else:
+            you_observation = (self.you.row, self.you.col, -1, -1)
+
+        if in_gaze_box(self.opp.row, self.opp.col, self.opp.gaze, self.you.row, self.you.col, self.num_rows, self.num_cols):
+            opp_observation = (self.opp.row, self.opp.col, self.you.row, self.you.col)
+        else:
+            opp_observation = (self.opp.row, self.opp.col, -1, -1)
+
+        observations = {
+            "you": you_observation,
+            "opp": opp_observation,
         }
         return observations
 
@@ -197,7 +219,10 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             self.agents = []
             self.agent_names = []
 
-        observations = self.get_full_observations()
+        if self.fully_observable:
+            observations = self.get_full_observations()
+        else:
+            observations = self.get_partial_observations()
         
         infos = {
             self.you.name: {"win": you_win},
@@ -228,7 +253,6 @@ class CustomActionMaskedEnvironment(ParallelEnv):
                     self.grid[col, row] = "y"
                 elif opp_gaze_mask[row, col] == 1:
                     self.grid[col, row] = "a"
-
 
     def render(self):
         if "text" in self.render_mode:
