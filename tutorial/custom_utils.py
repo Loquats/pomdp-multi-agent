@@ -103,15 +103,14 @@ def in_gaze_box(my_row, my_col, my_gaze_action, target_row, target_col, num_rows
 
 def index_to_action(index):
     """
-    0 (<MovementActions.DO_NOTHING: 0>, <GazeActions.N: 0>)
-    1 (<MovementActions.DO_NOTHING: 0>, <GazeActions.NE: 1>)
-    2 (<MovementActions.DO_NOTHING: 0>, <GazeActions.E: 2>)
-    3 (<MovementActions.DO_NOTHING: 0>, <GazeActions.SE: 3>)
-    4 (<MovementActions.DO_NOTHING: 0>, <GazeActions.S: 4>)
-    5 (<MovementActions.DO_NOTHING: 0>, <GazeActions.SW: 5>)
-    6 (<MovementActions.DO_NOTHING: 0>, <GazeActions.W: 6>)
-    7 (<MovementActions.DO_NOTHING: 0>, <GazeActions.NW: 7>)
-    8 (<MovementActions.N: 1>, <GazeActions.N: 0>)
+    0 (<MovementActions.DO_NOTHING: 0>, <GazeActions.NE: 0>)
+    1 (<MovementActions.DO_NOTHING: 0>, <GazeActions.SE: 1>)
+    2 (<MovementActions.DO_NOTHING: 0>, <GazeActions.SW: 2>)
+    3 (<MovementActions.DO_NOTHING: 0>, <GazeActions.NW: 3>)
+    4 (<MovementActions.N: 1>, <GazeActions.N: 0>)
     etc.
     """
     return MovementActions(index // len(GazeActions)), GazeActions(index % len(GazeActions))
+
+def action_to_index(move_action, gaze_action):
+    return move_action.value * len(GazeActions) + gaze_action.value

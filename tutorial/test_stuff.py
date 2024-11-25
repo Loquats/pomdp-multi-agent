@@ -1,9 +1,9 @@
-import tutorial_action_mask_env
+import markov_game_env as markov_game_env
 from pettingzoo.utils import wrappers
 from custom_utils import *
 
 
-env = tutorial_action_mask_env.make_env(render_mode="human")
+env = markov_game_env.make_env(render_mode="human")
 observations, infos = env.reset()
 
 print(env.agent_names)

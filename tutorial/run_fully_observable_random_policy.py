@@ -1,4 +1,4 @@
-from tutorial_action_mask_env import MarkovGameEnvironment
+from markov_game_env import MarkovGameEnvironment
 from custom_utils import *
 from policies import *
 from pettingzoo.utils import wrappers

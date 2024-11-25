@@ -10,7 +10,6 @@ from gymnasium.spaces import Discrete, MultiDiscrete
 from gymnasium.utils import seeding
 import pygame
 from gymnasium import spaces
-from gymnasium.utils import seeding
 
 from pettingzoo.utils import wrappers
 from pettingzoo.utils.agent_selector import agent_selector
@@ -47,9 +46,13 @@ RENDER_FPS = 1
 
 #     return env
 
+class InitialState(Enum):
+    UNIFORM = "uniform"
+    CORNERS = "corners"
+
 class MarkovGameEnvironment(ParallelEnv):
 
-    def __init__(self, fully_observable: bool, render_mode="none", max_timesteps=1000):
+    def __init__(self, fully_observable: bool, render_mode="none", max_timesteps=1000, initial_state=InitialState.UNIFORM):
         """The init method takes in environment arguments.
 
         Should define the following attributes:
@@ -68,6 +71,7 @@ class MarkovGameEnvironment(ParallelEnv):
         # print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
         self.max_timesteps = max_timesteps
+        self.initial_state = initial_state
 
         self.you = Agent("you")
         self.opp = Agent("opp")
@@ -85,7 +89,7 @@ class MarkovGameEnvironment(ParallelEnv):
 
 
     def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
+        self.np_random, self.seed = seeding.np_random(seed)
 
     def reset(self, seed=None, options=None):
         """Reset set the environment to a starting point.
@@ -99,18 +103,28 @@ class MarkovGameEnvironment(ParallelEnv):
 
         And must set up the environment so that render(), step(), and observe() can be called without issues.
         """
-        if seed is not None:
-            self._seed(seed=seed)
+        self._seed(seed=seed)
 
         self.timestep = 0
 
-        self.you.row = 0
-        self.you.col = 0
-        self.you.gaze = GazeActions.SE
+        if self.initial_state == InitialState.CORNERS:
+            self.you.row = 0
+            self.you.col = 0
+            self.you.gaze = GazeActions.SE
 
-        self.opp.row = self.num_rows - 1
-        self.opp.col = self.num_cols - 1
-        self.opp.gaze = GazeActions.NW
+            self.opp.row = self.num_rows - 1
+            self.opp.col = self.num_cols - 1
+            self.opp.gaze = GazeActions.NW
+        elif self.initial_state == InitialState.UNIFORM:
+            self.you.row = self.np_random.integers(self.num_rows)
+            self.you.col = self.np_random.integers(self.num_cols)
+            self.you.gaze = GazeActions(self.np_random.integers(len(GazeActions)))
+
+            self.opp.row = self.np_random.integers(self.num_rows)
+            self.opp.col = self.np_random.integers(self.num_cols)
+            self.opp.gaze = GazeActions(self.np_random.integers(len(GazeActions)))
+        else:
+            raise ValueError(f"Invalid initial state: {self.initial_state}")
 
         if self.fully_observable:
             observations = self.get_full_observations()

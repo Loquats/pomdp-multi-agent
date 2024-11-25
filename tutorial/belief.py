@@ -61,7 +61,7 @@ class DiscreteStateFilter:
             # Normalize to probability distribution. Is this really necessary? Probably yes, to avoid precision issues.
             self.belief = new_belief / np.sum(new_belief)
         else:
-            print("SEE OPPONENT")
+            print("CAN SEE OPPONENT")
             # we know exactly where the opponent is
             self.belief.fill(0.0)
             self.belief[opp_row, opp_col] = 1.0
@@ -75,6 +75,38 @@ class DiscreteStateFilter:
             rows.append(row_str)
         # Join rows with newlines
         return '\n'.join(rows)
+    
+    def sample(self):
+        """
+        Returns a random sample from the belief distribution as (row, col)
+        """
+        flat_index = np.random.choice(np.arange(self.num_rows * self.num_cols), p=self.belief.flatten())
+
+        # Convert flat index back to 2D coordinates
+        row = flat_index // self.num_cols
+        col = flat_index % self.num_cols
+        
+        return row, col
+
+    def get_center_of_mass(self):
+        """
+        Returns the center of mass of the belief distribution as (row, col)
+
+        Using this for policies only works if the distribution doesn't have multiple peaks.
+        """
+        # Calculate weighted sum of row and column indices
+        row_indices = np.arange(self.num_rows)
+        col_indices = np.arange(self.num_cols)
+        
+        # Get marginal distributions
+        row_marginal = np.sum(self.belief, axis=1)
+        col_marginal = np.sum(self.belief, axis=0)
+        
+        # Calculate center of mass
+        row_com = np.sum(row_indices * row_marginal)
+        col_com = np.sum(col_indices * col_marginal)
+        
+        return (row_com, col_com)
 
     # def obs_prob(self, observation, gaze_action, row, col):
     #     """
