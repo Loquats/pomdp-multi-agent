@@ -12,7 +12,7 @@ class DiscreteStateFilter:
 
     def update(self, observation, action):
         """
-        Update the belief based on the observation.
+        Update the belief based on the observation, and the action resulting in that observation.
         observation: (my_row, my_col, opponent_row, opponent_col)
             (opponent_row, opponent_col) is (-1, -1) if not observed
         action: 
@@ -59,6 +59,12 @@ class DiscreteStateFilter:
                     new_belief[row, col] = 0
             
             # Normalize to probability distribution. Is this really necessary? Probably yes, to avoid precision issues.
+            if np.sum(new_belief) == 0:
+                print("WTF")
+                print(observation)
+                print(action)
+                print("DSF gaze bounds", min_row, min_col, max_row, max_col)
+                print(self)
             self.belief = new_belief / np.sum(new_belief)
         else:
             print("CAN SEE OPPONENT")

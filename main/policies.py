@@ -1,13 +1,26 @@
 import random
 from belief import DiscreteStateFilter
 from custom_utils import GazeActions, MovementActions, action_to_index, index_to_action
-
+from abc import ABC, abstractmethod
 
 def template_policy(observation, action_space, agent):
     pass
 
-def random_policy(action_space):
-    return action_space.sample()
+class Policy(ABC):
+
+    @abstractmethod
+    def get_action(self, observation):
+        pass
+
+
+class RandomPolicy(Policy):
+
+    def __init__(self, action_space):
+        self.action_space = action_space
+
+    def get_action(self, observation):
+        return self.action_space.sample()
+
 
 class SamplingHeuristicPolicy:
     """
@@ -18,8 +31,11 @@ class SamplingHeuristicPolicy:
     def __init__(self, num_rows, num_cols, action_space):
         self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
         self.action_space = action_space
-
+        self.prev_action = None
     def get_action(self, observation):
+        if self.prev_action:
+            self.belief_filter.update(observation, self.prev_action)
+
         # get an action based on the current belief
         my_row, my_col, opp_row, opp_col = observation
         target_row, target_col = self.belief_filter.sample()
@@ -54,6 +70,5 @@ class SamplingHeuristicPolicy:
 
         # print(f"move: {move_action}, gaze: {gaze_action}")
 
-        # update belief based on the action
-        self.belief_filter.update(observation, (move_action, gaze_action))
+        self.prev_action = (move_action, gaze_action)
         return action_to_index(move_action, gaze_action)

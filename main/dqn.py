@@ -11,9 +11,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from main.markov_game_env import MarkovGameEnvironment, InitialState
+from custom_utils import MovementActions, GazeActions
+from markov_game_env import MarkovGameEnvironment, InitialState
 
-env =  MarkovGameEnvironment(fully_observable=False, render_mode="pygame", initial_state=InitialState.UNIFORM)
+env =  MarkovGameEnvironment(fully_observable=False, render_mode="none", initial_state=InitialState.UNIFORM)
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -33,6 +34,7 @@ print(device)
 
 ###########
 
+# state = belief, next_state = next_belief
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
@@ -87,10 +89,17 @@ TAU = 0.005
 LR = 1e-4
 
 # Get number of actions from gym action space
-n_actions = env.action_space.n
-# Get the number of state observations
-state, info = env.reset()
+n_actions = len(MovementActions) * len(GazeActions)
+print(f"n_actions: {n_actions}")
+# Get size dimensions of belief space
+observations, info = env.reset()
+
+
 n_observations = len(state)
+print(f"n_observations: {n_observations}")
+
+1/0
+
 
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)

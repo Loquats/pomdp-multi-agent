@@ -2,8 +2,7 @@ import markov_game_env as markov_game_env
 from custom_utils import *
 from policies import *
 from tqdm import tqdm
-
-policy = random_policy
+from markov_game_env import MarkovGameEnvironment, InitialState
 
 wins = {
     "you": 0,
@@ -23,11 +22,18 @@ num_iterations = 1000
 print(f"running {num_iterations} iterations")
 
 for i in tqdm(range(num_iterations)):
-    env = markov_game_env.make_env(render_mode="none")
+    env = MarkovGameEnvironment(fully_observable=False, render_mode="none", initial_state=InitialState.UNIFORM)
     observations, infos = env.reset()
 
+    policies = {
+        # "you": RandomPolicy(env.action_space(env.agent_names[0])),
+        "you": SamplingHeuristicPolicy(env.num_rows, env.num_cols, env.action_space(env.agent_names[0])),
+        "opp": RandomPolicy(env.action_space(env.agent_names[1])),
+    }
+
     while env.agent_names:
-        actions = {agent: policy(env.action_space(agent)) for agent in env.agent_names}
+        actions = {agent: policies[agent].get_action(observations[agent]) for agent in env.agent_names}
+        print(policies["you"].belief_filter)
         observations, rewards, terminations, truncations, infos = env.step(actions)
 
     you_win = infos[env.you.name]["win"]
