@@ -75,17 +75,9 @@ class MarkovGameEnvironment(ParallelEnv):
 
         self.you = Agent("you")
         self.opp = Agent("opp")
-        self.agent_names = [self.you.name, self.opp.name]
-        self.agents = [self.you, self.opp]
 
         self.num_cols = 20
         self.num_rows = 10
-
-        if "pygame" in self.render_mode:
-            cell_px = 30
-            self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
-        else:
-            self.grid = TextGrid(self.num_cols, self.num_rows)
 
 
     def _seed(self, seed=None):
@@ -125,6 +117,9 @@ class MarkovGameEnvironment(ParallelEnv):
             self.opp.gaze = GazeActions(self.np_random.integers(len(GazeActions)))
         else:
             raise ValueError(f"Invalid initial state: {self.initial_state}")
+        
+        self.agent_names = [self.you.name, self.opp.name]
+        self.agents = [self.you, self.opp]
 
         if self.fully_observable:
             observations = self.get_full_observations()
@@ -133,6 +128,12 @@ class MarkovGameEnvironment(ParallelEnv):
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
+
+        if "pygame" in self.render_mode:
+            cell_px = 30
+            self.grid = Grid(self.num_cols, self.num_rows, cell_px, cell_px, title="custom game", margin=1)
+        else:
+            self.grid = TextGrid(self.num_cols, self.num_rows)
 
         return observations, infos
 

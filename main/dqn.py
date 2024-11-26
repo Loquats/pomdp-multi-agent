@@ -10,8 +10,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from tqdm import tqdm
 
-from custom_utils import MovementActions, GazeActions
+from custom_utils import MovementActions, GazeActions, index_to_action
+from belief import DiscreteStateFilter
+from policies import RandomPolicy
 from markov_game_env import MarkovGameEnvironment, InitialState
 
 env =  MarkovGameEnvironment(fully_observable=False, render_mode="none", initial_state=InitialState.UNIFORM)
@@ -95,12 +98,7 @@ print(f"n_actions: {n_actions}")
 observations, info = env.reset()
 
 
-n_observations = len(state)
-print(f"n_observations: {n_observations}")
-
-1/0
-
-
+n_observations = env.num_rows * env.num_cols
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
@@ -125,30 +123,26 @@ def select_action(state):
             # found, so we pick action with the larger expected reward.
             return policy_net(state).max(1).indices.view(1, 1)
     else:
-        return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
+        return torch.tensor([[env.action_space(env.agent_names[0]).sample()]], device=device, dtype=torch.long)
 
 
-episode_durations = []
+episode_rewards = []
 
 
-def plot_durations(show_result=False):
-    """
-    Plot the durations of the episodes.
-    Duration: how long the cartpole survived
-    """
+def plot_rewards(show_result=False):
     plt.figure(1)
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
+    rewards_t = torch.tensor(episode_rewards, dtype=torch.float)
     if show_result:
         plt.title('Result')
     else:
         plt.clf()
         plt.title('Training...')
     plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
+    plt.ylabel('Reward')
+    plt.plot(rewards_t.numpy())
     # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+    if len(rewards_t) >= 100:
+        means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)
         means = torch.cat((torch.zeros(99), means))
         plt.plot(means.numpy())
 
@@ -214,27 +208,43 @@ if torch.cuda.is_available() or torch.backends.mps.is_available():
     num_episodes = 600
 else:
     num_episodes = 50
+print(f"num_episodes: {num_episodes}")
 
-for i_episode in range(num_episodes):
+random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
+
+for i_episode in tqdm(range(num_episodes)):
+    belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
+
     # Initialize the environment and get its state
-    state, info = env.reset()
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-    for t in count():
-        action = select_action(state)
-        observation, reward, terminated, truncated, _ = env.step(action.item())
-        reward = torch.tensor([reward], device=device)
-        done = terminated or truncated
+    observations, infos = env.reset()
+    belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
+    while env.agent_names:
+        actions = {}
+        for agent in env.agent_names:
+            if agent == "you":
+                tensor_action = select_action(belief_state)
+                actions[agent] = tensor_action.item()
+            else:
+                actions[agent] = random_policy.get_action(observations[agent])
 
-        if terminated:
-            next_state = None
+        # observation, reward, terminated, truncated, _ = env.step(action.item())
+        observations, rewards, terminations, truncations, infos = env.step(actions)
+        your_action = index_to_action(actions["you"])
+        belief_filter.update(observations["you"], your_action)
+
+        reward = torch.tensor([rewards["you"]], device=device)
+        done = any(terminations.values()) or any(truncations.values()) # TODO: check if this is correct
+
+        if done:
+            next_belief_state = None
         else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
+            next_belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
 
         # Store the transition in memory
-        memory.push(state, action, next_state, reward)
+        memory.push(belief_state, tensor_action, next_belief_state, reward)
 
         # Move to the next state
-        state = next_state
+        belief_state = next_belief_state
 
         # Perform one step of the optimization (on the policy network)
         optimize_model()
@@ -248,11 +258,13 @@ for i_episode in range(num_episodes):
         target_net.load_state_dict(target_net_state_dict)
 
         if done:
-            episode_durations.append(t + 1)
-            plot_durations()
-            break
+            discounted_reward = rewards["you"] * GAMMA ** env.timestep
+            # print(discounted_reward)
+            episode_rewards.append(discounted_reward)
+            plot_rewards()
+            # break
 
 print('Complete')
-plot_durations(show_result=True)
+plot_rewards(show_result=True)
 plt.ioff()
 plt.show()

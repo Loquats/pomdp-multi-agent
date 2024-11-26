@@ -7,7 +7,7 @@ class DiscreteStateFilter:
         self.belief = np.ones((num_rows, num_cols)) / (num_rows * num_cols)
         self.num_rows, self.num_cols = num_rows, num_cols
 
-    def is_valid(self, row, col):
+    def is_valid_cell(self, row, col):
         return 0 <= row < self.num_rows and 0 <= col < self.num_cols
 
     def update(self, observation, action):
@@ -44,7 +44,7 @@ class DiscreteStateFilter:
                         recipient_row = row + drow
                         recipient_col = col + dcol
 
-                        if self.is_valid(recipient_row, recipient_col):
+                        if self.is_valid_cell(recipient_row, recipient_col):
                             valid_recipients.append((recipient_row, recipient_col))
 
                     # diffuse the mass
@@ -116,6 +116,9 @@ class DiscreteStateFilter:
         col_com = np.sum(col_indices * col_marginal)
         
         return (row_com, col_com)
+    
+    def get_belief_vector(self):
+        return self.belief.flatten()
 
     # def obs_prob(self, observation, gaze_action, row, col):
     #     """
