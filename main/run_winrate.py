@@ -33,7 +33,7 @@ for i in tqdm(range(num_iterations)):
 
     while env.agent_names:
         actions = {agent: policies[agent].get_action(observations[agent]) for agent in env.agent_names}
-        print(policies["you"].belief_filter)
+        # print(policies["you"].belief_filter)
         observations, rewards, terminations, truncations, infos = env.step(actions)
 
     you_win = infos[env.you.name]["win"]

@@ -1,0 +1,25 @@
+running 1000 iterations
+100%|████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:20<00:00, 48.95it/s]
+{'you': 461, 'opp': 481, 'both': 46, 'neither': 12}
+winner is you: 0.461
+winner is opp: 0.481
+winner is both: 0.046
+winner is neither: 0.012
+mean timesteps for you: 183.1691973969631
+mean timesteps for opp: 181.93762993762994
+mean timesteps for both: 213.7826086956522
+mean timesteps for neither: 1002.0
+mean timesteps overall: 193.811
+
+running 1000 iterations
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:11<00:00, 87.07it/s]
+{'you': 826, 'opp': 116, 'both': 58, 'neither': 0}
+winner is you: 0.826
+winner is opp: 0.116
+winner is both: 0.058
+winner is neither: 0.0
+mean timesteps for you: 25.749394673123486
+mean timesteps for opp: 26.939655172413794
+mean timesteps for both: 20.56896551724138
+mean timesteps for neither: nan
+mean timesteps overall: 25.587

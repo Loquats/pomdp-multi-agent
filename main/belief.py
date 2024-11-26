@@ -21,7 +21,7 @@ class DiscreteStateFilter:
         _my_move_action, my_gaze_action = action # we don't need the move action
         
         if opp_row == -1 and opp_col == -1:
-            print("CAN'T SEE OPPONENT")
+            # print("CAN'T SEE OPPONENT")
             """
             complicated diffusion of probability
 
@@ -59,15 +59,18 @@ class DiscreteStateFilter:
                     new_belief[row, col] = 0
             
             # Normalize to probability distribution. Is this really necessary? Probably yes, to avoid precision issues.
-            if np.sum(new_belief) == 0:
+            total = np.sum(new_belief)
+            if total == 0:
                 print("WTF")
                 print(observation)
                 print(action)
                 print("DSF gaze bounds", min_row, min_col, max_row, max_col)
                 print(self)
-            self.belief = new_belief / np.sum(new_belief)
+                raise Exception("belief sum is 0")
+            
+            self.belief = new_belief / total
         else:
-            print("CAN SEE OPPONENT")
+            # print("CAN SEE OPPONENT")
             # we know exactly where the opponent is
             self.belief.fill(0.0)
             self.belief[opp_row, opp_col] = 1.0

@@ -151,10 +151,10 @@ class MarkovGameEnvironment(ParallelEnv):
         !!! the order is always (this_agent_observations..., other_agent_observations...)
         """
         if in_gaze_box(self.you.row, self.you.col, self.you.gaze, self.opp.row, self.opp.col, self.num_rows, self.num_cols):
-            print("opponent in your gaze box")
+            # print("opponent in your gaze box")
             you_observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
         else:
-            print("opponent not in your gaze box")
+            # print("opponent not in your gaze box")
             you_observation = (self.you.row, self.you.col, -1, -1)
 
         if in_gaze_box(self.opp.row, self.opp.col, self.opp.gaze, self.you.row, self.you.col, self.num_rows, self.num_cols):
