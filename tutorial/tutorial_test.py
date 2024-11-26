@@ -1,5 +1,5 @@
 from tutorial_env import CustomEnvironment
-from tutorial_action_mask_env import CustomActionMaskedEnvironment
+from markov_game_env import CustomActionMaskedEnvironment
 
 from pettingzoo.test import parallel_api_test
 

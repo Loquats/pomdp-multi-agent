@@ -10,7 +10,6 @@ from gymnasium.spaces import Discrete, MultiDiscrete
 from gymnasium.utils import seeding
 import pygame
 from gymnasium import spaces
-from gymnasium.utils import seeding
 
 from pettingzoo.utils import wrappers
 from pettingzoo.utils.agent_selector import agent_selector
@@ -24,32 +23,36 @@ from text_grid import TextGrid
 
 RENDER_FPS = 1
 
-def make_env(render_mode=None):
-    """
-    The env function often wraps the environment in wrappers by default.
-    You can find full documentation for these methods
-    elsewhere in the developer documentation.
-    """
-    # internal_render_mode = render_mode if render_mode != "ansi" else "human"
-    # env = raw_env(render_mode=internal_render_mode)
+# def make_env(render_mode=None):
+#     """
+#     The env function often wraps the environment in wrappers by default.
+#     You can find full documentation for these methods
+#     elsewhere in the developer documentation.
+#     """
+#     # internal_render_mode = render_mode if render_mode != "ansi" else "human"
+#     # env = raw_env(render_mode=internal_render_mode)
 
-    env = CustomActionMaskedEnvironment(render_mode=render_mode)
+#     env = CustomActionMaskedEnvironment(render_mode=render_mode)
 
-    # This wrapper is only for environments which print results to the terminal
-    if render_mode == "ansi":
-        env = wrappers.CaptureStdoutWrapper(env)
-    # this wrapper helps error handling for discrete action spaces
-    # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
+#     # This wrapper is only for environments which print results to the terminal
+#     if render_mode == "ansi":
+#         env = wrappers.CaptureStdoutWrapper(env)
+#     # this wrapper helps error handling for discrete action spaces
+#     # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
 
-    # Provides a wide vareity of helpful user errors
-    # Strongly recommended
-    # env = wrappers.OrderEnforcingWrapper(env)
+#     # Provides a wide vareity of helpful user errors
+#     # Strongly recommended
+#     # env = wrappers.OrderEnforcingWrapper(env)
 
-    return env
+#     return env
 
-class CustomActionMaskedEnvironment(ParallelEnv):
+class InitialState(Enum):
+    UNIFORM = "uniform"
+    CORNERS = "corners"
 
-    def __init__(self, render_mode="none", max_timesteps=1000):
+class MarkovGameEnvironment(ParallelEnv):
+
+    def __init__(self, fully_observable: bool, render_mode="none", max_timesteps=1000, initial_state=InitialState.UNIFORM):
         """The init method takes in environment arguments.
 
         Should define the following attributes:
@@ -62,11 +65,13 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         These attributes should not be changed after initialization.
         """
+        self.fully_observable = fully_observable
         assert render_mode in ["pygame", "text", "none"]
         self.render_mode = render_mode
         # print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
         self.max_timesteps = max_timesteps
+        self.initial_state = initial_state
 
         self.you = Agent("you")
         self.opp = Agent("opp")
@@ -84,7 +89,7 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
 
     def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
+        self.np_random, self.seed = seeding.np_random(seed)
 
     def reset(self, seed=None, options=None):
         """Reset set the environment to a starting point.
@@ -98,20 +103,33 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
         And must set up the environment so that render(), step(), and observe() can be called without issues.
         """
-        if seed is not None:
-            self._seed(seed=seed)
+        self._seed(seed=seed)
 
         self.timestep = 0
 
-        self.you.row = 0
-        self.you.col = 0
-        self.you.gaze = GazeActions.SE
+        if self.initial_state == InitialState.CORNERS:
+            self.you.row = 0
+            self.you.col = 0
+            self.you.gaze = GazeActions.SE
 
-        self.opp.row = self.num_rows - 1
-        self.opp.col = self.num_cols - 1
-        self.opp.gaze = GazeActions.NW
+            self.opp.row = self.num_rows - 1
+            self.opp.col = self.num_cols - 1
+            self.opp.gaze = GazeActions.NW
+        elif self.initial_state == InitialState.UNIFORM:
+            self.you.row = self.np_random.integers(self.num_rows)
+            self.you.col = self.np_random.integers(self.num_cols)
+            self.you.gaze = GazeActions(self.np_random.integers(len(GazeActions)))
 
-        observations = self.get_full_observations()
+            self.opp.row = self.np_random.integers(self.num_rows)
+            self.opp.col = self.np_random.integers(self.num_cols)
+            self.opp.gaze = GazeActions(self.np_random.integers(len(GazeActions)))
+        else:
+            raise ValueError(f"Invalid initial state: {self.initial_state}")
+
+        if self.fully_observable:
+            observations = self.get_full_observations()
+        else:
+            observations = self.get_partial_observations()
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
@@ -120,13 +138,31 @@ class CustomActionMaskedEnvironment(ParallelEnv):
 
     def get_full_observations(self):
         """
-        TODO: should we observe the gaze?
-        TODO: should we have action masks?
+        !!! the order is always (this_agent_observations..., other_agent_observations...)
         """
-        observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
         observations = {
-            "you": observation,
-            "opp": observation,
+            "you": (self.you.row, self.you.col, self.opp.row, self.opp.col),
+            "opp": (self.opp.row, self.opp.col, self.you.row, self.you.col),
+        }
+        return observations
+    
+    def get_partial_observations(self):
+        """
+        !!! the order is always (this_agent_observations..., other_agent_observations...)
+        """
+        if in_gaze_box(self.you.row, self.you.col, self.you.gaze, self.opp.row, self.opp.col, self.num_rows, self.num_cols):
+            you_observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
+        else:
+            you_observation = (self.you.row, self.you.col, -1, -1)
+
+        if in_gaze_box(self.opp.row, self.opp.col, self.opp.gaze, self.you.row, self.you.col, self.num_rows, self.num_cols):
+            opp_observation = (self.opp.row, self.opp.col, self.you.row, self.you.col)
+        else:
+            opp_observation = (self.opp.row, self.opp.col, -1, -1)
+
+        observations = {
+            "you": you_observation,
+            "opp": opp_observation,
         }
         return observations
 
@@ -197,7 +233,10 @@ class CustomActionMaskedEnvironment(ParallelEnv):
             self.agents = []
             self.agent_names = []
 
-        observations = self.get_full_observations()
+        if self.fully_observable:
+            observations = self.get_full_observations()
+        else:
+            observations = self.get_partial_observations()
         
         infos = {
             self.you.name: {"win": you_win},
@@ -228,7 +267,6 @@ class CustomActionMaskedEnvironment(ParallelEnv):
                     self.grid[col, row] = "y"
                 elif opp_gaze_mask[row, col] == 1:
                     self.grid[col, row] = "a"
-
 
     def render(self):
         if "text" in self.render_mode:

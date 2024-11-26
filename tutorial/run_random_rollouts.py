@@ -1,4 +1,4 @@
-import tutorial_action_mask_env
+import markov_game_env as markov_game_env
 from custom_utils import *
 from policies import *
 from tqdm import tqdm
@@ -18,7 +18,7 @@ num_iterations = 1000
 print(f"running {num_iterations} iterations")
 
 for i in tqdm(range(num_iterations)):
-    env = tutorial_action_mask_env.make_env(render_mode="none")
+    env = markov_game_env.make_env(render_mode="none")
     observations, infos = env.reset()
 
     prev_observations = observations
