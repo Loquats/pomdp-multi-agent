@@ -1,3 +1,5 @@
+from datetime import datetime
+import os
 import gymnasium as gym
 import math
 import random
@@ -33,7 +35,7 @@ device = torch.device(
     "cpu"
 )
 
-print(device)
+print(f"device: {device}")
 
 ###########
 
@@ -93,7 +95,7 @@ LR = 1e-4
 
 # Get number of actions from gym action space
 n_actions = len(MovementActions) * len(GazeActions)
-print(f"n_actions: {n_actions}")
+# print(f"n_actions: {n_actions}")
 # Get size dimensions of belief space
 observations, info = env.reset()
 
@@ -204,15 +206,38 @@ def optimize_model():
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
 
-if torch.cuda.is_available() or torch.backends.mps.is_available():
+if torch.cuda.is_available():
     num_episodes = 600
+    num_saves = 10
+if torch.backends.mps.is_available():
+    # macbook
+    num_episodes = 10
+    num_saves = 5
 else:
-    num_episodes = 50
-print(f"num_episodes: {num_episodes}")
+    # pc
+    num_episodes = 10
+    num_saves = 5
+episodes_per_save = num_episodes // num_saves
 
+print(f"num_episodes: {num_episodes}")
+print(f"num_saves: {num_saves}")
+print(f"episodes_per_save: {episodes_per_save}")
+
+def create_save_directory():
+    # Create save directory with timestamp
+    timestamp = datetime.now().strftime('%Y_%m_%d_%H:%M:%S')
+    save_dir = f'results/dqn_{timestamp}'
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir
+
+def save_weights(net, filepath):
+    torch.save(net.state_dict(), filepath)
+    print(f"saved weights: {save_file}")
+
+save_dir = create_save_directory()
 random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
 
-for i_episode in tqdm(range(num_episodes)):
+for i in tqdm(range(num_episodes)):
     belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
 
     # Initialize the environment and get its state
@@ -257,14 +282,22 @@ for i_episode in tqdm(range(num_episodes)):
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         target_net.load_state_dict(target_net_state_dict)
 
-        if done:
-            discounted_reward = rewards["you"] * GAMMA ** env.timestep
-            # print(discounted_reward)
-            episode_rewards.append(discounted_reward)
-            plot_rewards()
-            # break
+    discounted_reward = rewards["you"] * GAMMA ** env.timestep
+    episode_rewards.append(discounted_reward)
+    plot_rewards()
+    print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
 
-print('Complete')
+    if (i + 1) % episodes_per_save == 0:
+        save_file = os.path.join(save_dir, f'policy_{i}.pth')
+        save_weights(policy_net, save_file)
+
+# should be the same as the last checkpoint, but just for convenience:
+save_file = os.path.join(save_dir, f'policy_final.pth')
+save_weights(policy_net, save_file)
+
+# print('Complete')
 plot_rewards(show_result=True)
 plt.ioff()
-plt.show()
+# plt.show()
+plt.savefig(os.path.join(save_dir, f"rewards.png"))
+print("Done!")
