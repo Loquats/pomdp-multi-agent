@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 import os
 import gymnasium as gym
@@ -207,9 +208,9 @@ def optimize_model():
     optimizer.step()
 
 if torch.cuda.is_available():
-    num_episodes = 600
+    num_episodes = 100
     num_saves = 10
-if torch.backends.mps.is_available():
+elif torch.backends.mps.is_available():
     # macbook
     num_episodes = 10
     num_saves = 5
@@ -223,10 +224,17 @@ print(f"num_episodes: {num_episodes}")
 print(f"num_saves: {num_saves}")
 print(f"episodes_per_save: {episodes_per_save}")
 
+def is_databricks_cluster():
+    """Is the code running on a Databricks cluster?"""
+    return "DATABRICKS_RUNTIME_VERSION" in os.environ
+
 def create_save_directory():
     # Create save directory with timestamp
     timestamp = datetime.now().strftime('%Y_%m_%d_%H:%M:%S')
-    save_dir = f'results/dqn_{timestamp}'
+    if is_databricks_cluster():
+        save_dir = f'/Volumes/datasets/andyzhang/hw/dqn_{timestamp}'
+    else:
+        save_dir = f'results/dqn_{timestamp}'
     os.makedirs(save_dir, exist_ok=True)
     return save_dir
 
@@ -237,7 +245,8 @@ def save_weights(net, filepath):
 save_dir = create_save_directory()
 random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
 
-for i in tqdm(range(num_episodes)):
+for i in range(num_episodes):
+# for i in tqdm(range(num_episodes)):
     belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
 
     # Initialize the environment and get its state
@@ -257,7 +266,12 @@ for i in tqdm(range(num_episodes)):
         your_action = index_to_action(actions["you"])
         belief_filter.update(observations["you"], your_action)
 
-        reward = torch.tensor([rewards["you"]], device=device)
+        if "you" in rewards:
+            reward = torch.tensor([rewards["you"]], device=device)
+        else:
+            print("WTF!")
+            reward = 0
+        
         done = any(terminations.values()) or any(truncations.values()) # TODO: check if this is correct
 
         if done:
@@ -285,7 +299,7 @@ for i in tqdm(range(num_episodes)):
     discounted_reward = rewards["you"] * GAMMA ** env.timestep
     episode_rewards.append(discounted_reward)
     plot_rewards()
-    print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
+    # print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
 
     if (i + 1) % episodes_per_save == 0:
         save_file = os.path.join(save_dir, f'policy_{i}.pth')
