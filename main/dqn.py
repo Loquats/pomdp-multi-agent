@@ -130,6 +130,7 @@ def select_action(state):
 
 
 episode_rewards = []
+episode_timesteps = []
 
 
 def plot_rewards(show_result=False):
@@ -298,6 +299,7 @@ for i in range(num_episodes):
 
     discounted_reward = rewards["you"] * GAMMA ** env.timestep
     episode_rewards.append(discounted_reward)
+    episode_timesteps.append(env.timestep)
     plot_rewards()
     # print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
 
@@ -314,4 +316,23 @@ plot_rewards(show_result=True)
 plt.ioff()
 # plt.show()
 plt.savefig(os.path.join(save_dir, f"rewards.png"))
+
+rewards_path = os.path.join(save_dir, 'dqn.json')
+with open(rewards_path, 'w') as f:
+    json.dump({
+        'metadata': {
+            'num_episodes': num_episodes,
+            'batch_size': BATCH_SIZE,
+            'gamma': GAMMA,
+            'eps_start': EPS_START,
+            'eps_end': EPS_END,
+            'eps_decay': EPS_DECAY,
+            'tau': TAU,
+            'learning_rate': LR
+        },
+        'episode_rewards': episode_rewards,
+        'episode_timesteps': episode_timesteps,
+    }, f, indent=4)
+print(f'Episode rewards saved to {rewards_path}')
+
 print("Done!")
