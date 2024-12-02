@@ -10,7 +10,7 @@ from gridworld.grid import Grid
 from src.env_utils import *
 from src.text_grid import TextGrid
 
-RENDER_FPS = 1
+RENDER_FPS = 5
 
 # def make_env(render_mode=None):
 #     """

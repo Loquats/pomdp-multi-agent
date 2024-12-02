@@ -13,7 +13,8 @@ print(env.action_space(env.agent_names[1]))
 print(f"Observations: {observations}")
 
 policies = {
-    "you": Policy.get("results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth", env),
+    "you": Policy.get("results/dqn_2024_12_02_00:31:12/policy_final.pth", env),
+    # "you": Policy.get("results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth", env),
     "opp": Policy.get("random", env),
 }
 

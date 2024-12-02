@@ -1,3 +1,17 @@
+(dqn) 01:18:06 andy:~/aa228/pz$ python run_winrate.py
+running winrate for results/dqn_2024_12_02_00:31:12/policy_final.pth vs random
+100%|████████████████████████████████████████████████████████████████████| 1000/1000 [05:30<00:00,  3.03it/s]
+{'you': 590, 'opp': 225, 'both': 38, 'neither': 147}
+winner is you: 0.59
+winner is opp: 0.225
+winner is both: 0.038
+winner is neither: 0.147
+mean timesteps for you: 243.82033898305085
+mean timesteps for opp: 254.27555555555554
+mean timesteps for both: 178.3684210526316
+mean timesteps for neither: 1002.0
+mean timesteps overall: 355.138
+
 (dqn) 00:22:00 andy:~/aa228/pz$ python run_winrate.py
 running winrate for results/dqn_2024_12_01_23:42:33/policy_final.pth vs random
 100%|████████████████████████████████████████████████████████████████████| 1000/1000 [05:50<00:00,  2.85it/s]
@@ -7,7 +21,7 @@ winner is opp: 0.217
 winner is both: 0.029
 winner is neither: 0.146
 mean timesteps for you: 235.3503289473684
-mean timesteps for opp: 189.02304147465438
+mean timesteps for opp: 189.023041474654381
 mean timesteps for both: 200.55172413793105
 mean timesteps for neither: 1002.0
 mean timesteps overall: 336.219

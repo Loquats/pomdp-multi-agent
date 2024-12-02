@@ -106,7 +106,12 @@ class BeliefDQNPolicy(Policy):
         n_actions = len(MovementActions) * len(GazeActions)
         n_observations = num_rows * num_cols
 
-        size = "medium" if is_medium_policy(filepath) else "small"
+        if is_large_policy(filepath):
+            size = "large"
+        elif is_medium_policy(filepath):
+            size = "medium"
+        else:
+            size = "small"
         self.policy_net = DQN(n_observations, n_actions, size=size).to(self.device)
         self.policy_net.load_state_dict(torch.load(self.filepath))
 
@@ -129,3 +134,6 @@ class BeliefDQNPolicy(Policy):
 
 def is_medium_policy(path):
     return path in ["results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth"]
+
+def is_large_policy(path):
+    return path in ["results/dqn_2024_12_02_00:31:12/policy_final.pth"]
