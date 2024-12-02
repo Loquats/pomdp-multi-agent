@@ -1,3 +1,4 @@
+import os
 import torch
 
 import matplotlib
@@ -14,16 +15,16 @@ print(f"is_ipython: {is_ipython}")
 if not is_databricks_cluster():
     plt.ion()
 
-def plot_rewards(episode_rewards, show_result=False):
-    plt.figure(1)
+def plot_rewards(episode_rewards, show_result=False, save_dir=None):
+    plt.figure("rewards")
     rewards_t = torch.tensor(episode_rewards, dtype=torch.float)
     if show_result:
-        plt.title('Result')
+        plt.title('Training Discounted Rewards')
     else:
         plt.clf()
-        plt.title('Training...')
+        plt.title('Training Discounted Rewards...')
     plt.xlabel('Episode')
-    plt.ylabel('Reward')
+    plt.ylabel('Discounted Reward')
     plt.plot(rewards_t.numpy())
     # Take 100 episode averages and plot them too
     if len(rewards_t) >= 100:
@@ -41,3 +42,38 @@ def plot_rewards(episode_rewards, show_result=False):
                 display.clear_output(wait=True)
             else:
                 display.display(plt.gcf())
+    
+    if save_dir:
+        plt.savefig(os.path.join(save_dir, f"rewards.png"))
+
+
+def plot_loss(episode_loss, show_result=False, save_dir=None):
+    plt.figure("loss")
+    rewards_t = torch.tensor(episode_loss, dtype=torch.float)
+    title = 'Training Loss (averaged per episode)'
+    if show_result:
+        plt.title(title)
+    else:
+        plt.clf()
+        plt.title(f"{title}...")
+    plt.xlabel('Episode')
+    plt.ylabel('Loss')
+    plt.plot(rewards_t.numpy())
+    # Take 100 episode averages and plot them too
+    if len(rewards_t) >= 100:
+        means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means.numpy())
+
+    if is_databricks_cluster():
+        pass
+    else:
+        plt.pause(0.001)  # pause a bit so that plots are updated
+        if is_ipython:
+            if not show_result:
+                display.display(plt.gcf())
+                display.clear_output(wait=True)
+            else:
+                display.display(plt.gcf())
+    if save_dir:
+        plt.savefig(os.path.join(save_dir, f"loss.png"))

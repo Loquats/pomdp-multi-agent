@@ -129,6 +129,8 @@ def optimize_model(optimizer, policy_net, target_net, memory, params, device):
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
 
+    return loss
+
 def create_save_directory():
     # Create save directory with timestamp
     timestamp = datetime.now().strftime('%Y_%m_%d_%H:%M:%S')

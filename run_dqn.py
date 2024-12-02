@@ -14,7 +14,7 @@ from src.belief import DiscreteStateFilter
 from src.policies import RandomPolicy
 from src.markov_game_env import MarkovGameEnvironment, InitialState
 from src.dqn import *
-from src.plotting import plot_rewards
+from src.plotting import *
 
 
 env =  MarkovGameEnvironment(fully_observable=False, render_mode="none", initial_state=InitialState.UNIFORM)
@@ -38,7 +38,6 @@ n_actions = len(MovementActions) * len(GazeActions)
 # Get size dimensions of belief space
 observations, info = env.reset()
 
-
 n_observations = env.num_rows * env.num_cols
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
@@ -47,11 +46,10 @@ target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.AdamW(policy_net.parameters(), lr=params.LR, amsgrad=True)
 memory = ReplayMemory(10000)
 
-
 global_steps_done = 0
 episode_rewards = []
 episode_timesteps = []
-
+episode_avg_losses = [] # the average loss of each episode
 
 if torch.cuda.is_available():
     num_episodes = 3000
@@ -71,7 +69,6 @@ print(f"num_saves: {num_saves}")
 print(f"episodes_per_save: {episodes_per_save}")
 
 
-
 save_dir = create_save_directory()
 random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
 
@@ -82,6 +79,8 @@ for i in range(num_episodes):
     # Initialize the environment and get its state
     observations, infos = env.reset()
     belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
+
+    losses = []
     while env.agent_names:
         actions = {}
         for agent in env.agent_names:
@@ -117,7 +116,8 @@ for i in range(num_episodes):
         belief_state = next_belief_state
 
         # Perform one step of the optimization (on the policy network)
-        optimize_model(optimizer, policy_net, target_net, memory, params, device)
+        loss = optimize_model(optimizer, policy_net, target_net, memory, params, device)
+        losses.append(loss)
 
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
@@ -130,7 +130,17 @@ for i in range(num_episodes):
     discounted_reward = rewards["you"] * params.GAMMA ** env.timestep
     episode_rewards.append(discounted_reward)
     episode_timesteps.append(env.timestep)
+
+    # print(losses)
+    valid_losses = [loss.item() for loss in losses if loss is not None]
+    if valid_losses:
+        episode_avg_losses.append(np.mean(valid_losses))
+    else:
+        episode_avg_losses.append(0)
+        print(f"WARNING: no valid losses for episode {i}")
+
     plot_rewards(episode_rewards)
+    plot_loss(episode_avg_losses)
     # print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
 
     if (i + 1) % episodes_per_save == 0:
@@ -144,8 +154,8 @@ for i in range(num_episodes):
 save_file = os.path.join(save_dir, f'policy_final.pth')
 save_weights(policy_net, save_file)
 
-plot_rewards(episode_rewards, show_result=True)
-plt.savefig(os.path.join(save_dir, f"rewards.png"))
+plot_rewards(episode_rewards, show_result=True, save_dir=save_dir)
+plot_loss(episode_avg_losses, show_result=True, save_dir=save_dir)
 
 rewards_path = os.path.join(save_dir, 'dqn.json')
 with open(rewards_path, 'w') as f:
