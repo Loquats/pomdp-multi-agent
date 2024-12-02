@@ -48,6 +48,9 @@ class Agent:
         return f"{self.name} at ({self.row}, {self.col})"
     
 def get_top_left(gaze, row, col):
+    """
+    Intentionally return out-of-bounds values (eg. negative values), which get_gaze_bounds relies on
+    """
     if gaze == GazeActions.SE:
         return (row, col)
     elif gaze == GazeActions.SW:
@@ -66,11 +69,12 @@ def get_gaze_bounds(gaze, row, col, num_rows, num_cols):
     The max_row and max_col are inclusive.
     """
     # print("input to get_gaze_bounds", gaze, row, col, num_rows, num_cols)
-    min_row, min_col = get_top_left(gaze, row, col)
-    min_row = max(min_row, 0)
-    min_col = max(min_col, 0)
-    max_row = min(min_row + GAZE_DISTANCE, num_rows-1)
-    max_col = min(min_col + GAZE_DISTANCE, num_cols-1)
+    top_left_row, top_left_col = get_top_left(gaze, row, col)
+    
+    min_row = max(top_left_row, 0)
+    min_col = max(top_left_col, 0)
+    max_row = min(top_left_row + GAZE_DISTANCE, num_rows-1)
+    max_col = min(top_left_col + GAZE_DISTANCE, num_cols-1)
     return (min_row, min_col, max_row, max_col)
 
 @functools.lru_cache(maxsize=128)

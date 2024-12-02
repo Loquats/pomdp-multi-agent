@@ -58,10 +58,9 @@ class DiscreteStateFilter:
                 for col in range(min_col, max_col+1):
                     new_belief[row, col] = 0
             
-            # Normalize to probability distribution. Is this really necessary? Probably yes, to avoid precision issues.
             total = np.sum(new_belief)
             if total == 0:
-                print("WTF")
+                print("WTF. This is a real error you need to debug. Likely cause: you should not reuse a heuristic policy/DiscreteStateFilter across environments. Make a fresh heuristic policy instead!")
                 print(observation)
                 print(action)
                 print("DSF gaze bounds", min_row, min_col, max_row, max_col)

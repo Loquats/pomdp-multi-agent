@@ -275,15 +275,15 @@ class MarkovGameEnvironment(ParallelEnv):
     # lru_cache allows observation and action spaces to be memoized, reducing clock cycles required to get each agent's space.
     # If your spaces change over time, remove this line (disable caching).
     @functools.lru_cache(maxsize=128)
-    def observation_space(self, agent):
-        """
-        TODO: wtf is this?
-        """
+    def observation_space(self, agent=None):
         # gymnasium spaces are defined and documented here: https://gymnasium.farama.org/api/spaces/
         return MultiDiscrete([7 * 7 - 1] * 3)
 
     # Action space should be defined here.
     # If your spaces change over time, remove this line (disable caching).
     @functools.lru_cache(maxsize=128)
-    def action_space(self, agent):
+    def action_space(self, agent=None):
         return Discrete(len(MovementActions) * len(GazeActions))
+
+    def print_locations(self):
+        print(f"You: {self.you.row},{self.you.col}; Opponent: {self.opp.row},{self.opp.col}")

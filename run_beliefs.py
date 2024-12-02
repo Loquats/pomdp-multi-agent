@@ -18,7 +18,7 @@ belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
 print("initial belief (should be uniform):")
 print(belief_filter)
 
-policy = SamplingHeuristicPolicy(env.num_rows, env.num_cols, env.action_space(env.agent_names[0]))
+policy = SamplingHeuristicPolicy(env.num_rows, env.num_cols)
 
 while env.agent_names:
     # actions = {agent: random_policy(env.action_space(agent)) for agent in env.agent_names}

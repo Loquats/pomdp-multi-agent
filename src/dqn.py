@@ -75,13 +75,17 @@ def select_action(global_steps_done, state, policy_net, params, env, device):
     eps_threshold = params.EPS_END + (params.EPS_START - params.EPS_END) * \
         math.exp(-1. * global_steps_done / params.EPS_DECAY)
     if sample > eps_threshold:
-        with torch.no_grad():
-            # t.max(1) will return the largest column value of each row.
-            # second column on max result is index of where max element was
-            # found, so we pick action with the larger expected reward.
-            return policy_net(state).max(1).indices.view(1, 1)
+        return get_policy_action(state, policy_net)
     else:
+        # get random action
         return torch.tensor([[env.action_space(env.agent_names[0]).sample()]], device=device, dtype=torch.long)
+    
+def get_policy_action(state, policy_net):
+    with torch.no_grad():
+        # t.max(1) will return the largest column value of each row.
+        # second column on max result is index of where max element was
+        # found, so we pick action with the larger expected reward.
+        return policy_net(state).max(1).indices.view(1, 1)
 
 def optimize_model(optimizer, policy_net, target_net, memory, params, device):
     if len(memory) < params.BATCH_SIZE:
