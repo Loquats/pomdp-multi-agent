@@ -6,7 +6,7 @@ env = MarkovGameEnvironment(fully_observable=False, render_mode="none", initial_
 env.reset()
 
 # Always use Policy.get() to get a fresh policy. You cannot reuse stateful policies like the heuristic policy
-opponent_policies = ["random"]
+opponent_policies = ["heuristic"]
 you_policies = ["results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth"]
 # you_policies = ["heuristic"]
 

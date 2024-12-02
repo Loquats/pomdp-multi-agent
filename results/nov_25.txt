@@ -1,3 +1,16 @@
+running winrate for results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth vs random
+100%|████████████████████████████████████████████████████████████████████| 1000/1000 [04:51<00:00,  3.43it/s]
+{'you': 295, 'opp': 555, 'both': 29, 'neither': 121}
+winner is you: 0.295
+winner is opp: 0.555
+winner is both: 0.029
+winner is neither: 0.121
+mean timesteps for you: 127.43050847457627
+mean timesteps for opp: 277.6144144144144
+mean timesteps for both: 193.72413793103448
+mean timesteps for neither: 1002.0
+mean timesteps overall: 318.528
+
 running 1000 iterations
 100%|████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:20<00:00, 48.95it/s]
 {'you': 461, 'opp': 481, 'both': 46, 'neither': 12}
