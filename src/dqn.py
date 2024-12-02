@@ -19,7 +19,9 @@ class DQNParams:
     # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
     # TAU is the update rate of the target network
     # LR is the learning rate of the ``AdamW`` optimizer
-    BATCH_SIZE = 128
+
+    # BATCH_SIZE = 128
+    BATCH_SIZE = 4096
     GAMMA = 0.99
     EPS_START = 0.9
     EPS_END = 0.05
@@ -152,3 +154,22 @@ def save_weights(net, filepath):
 def is_databricks_cluster():
     """Is the code running on a Databricks cluster?"""
     return "DATABRICKS_RUNTIME_VERSION" in os.environ
+
+reward_map = {
+    -100: -3,
+    0: 0,
+    1: 1,
+    100: 3,
+}
+
+def shape_reward(reward_tensor, you_win):
+    reward = reward_map[reward_tensor.item()]
+
+    if you_win:
+        reward += 2
+    else:
+        reward -= 2
+
+    # assert reward != 0
+    
+    return torch.tensor([reward])

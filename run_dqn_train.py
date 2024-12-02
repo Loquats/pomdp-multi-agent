@@ -80,7 +80,7 @@ for i in range(num_episodes):
     observations, infos = env.reset()
     belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
 
-    losses = []
+    episode_memory = ReplayMemory(1000)
     while env.agent_names:
         actions = {}
         for agent in env.agent_names:
@@ -109,35 +109,44 @@ for i in range(num_episodes):
         else:
             next_belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
 
-        # Store the transition in memory
-        memory.push(belief_state, tensor_action, next_belief_state, reward)
+        episode_memory.push(belief_state, tensor_action, next_belief_state, reward)
 
         # Move to the next state
         belief_state = next_belief_state
 
-        # Perform one step of the optimization (on the policy network)
-        loss = optimize_model(optimizer, policy_net, target_net, memory, params, device)
-        losses.append(loss)
+        you_win = infos[env.you.name]["win"]
+        opp_win = infos[env.opp.name]["win"]
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*params.TAU + target_net_state_dict[key]*(1-params.TAU)
-        target_net.load_state_dict(target_net_state_dict)
+
+    if you_win or opp_win:
+        # Move episode_memory to true memory, with reward shaping
+        for transition in episode_memory.memory:
+            shaped_reward = shape_reward(transition.reward, you_win).to(device)
+            memory.push(transition.state, transition.action, transition.next_state, shaped_reward)
+    else:
+        print(f"skipping episode {i} because neither agent won")
+
+    #####
+    # Perform one step of the optimization (on the policy network)
+    loss = optimize_model(optimizer, policy_net, target_net, memory, params, device)
+    if loss is None:
+        loss = 0
+        print(f"WARNING: loss is None for episode {i}")
+    episode_avg_losses.append(loss)
+
+    # Soft update of the target network's weights
+    # θ′ ← τ θ + (1 −τ )θ′
+    target_net_state_dict = target_net.state_dict()
+    policy_net_state_dict = policy_net.state_dict()
+    for key in policy_net_state_dict:
+        target_net_state_dict[key] = policy_net_state_dict[key]*params.TAU + target_net_state_dict[key]*(1-params.TAU)
+    target_net.load_state_dict(target_net_state_dict)
+    #####
+
 
     discounted_reward = rewards["you"] * params.GAMMA ** env.timestep
     episode_rewards.append(discounted_reward)
     episode_timesteps.append(env.timestep)
-
-    # print(losses)
-    valid_losses = [loss.item() for loss in losses if loss is not None]
-    if valid_losses:
-        episode_avg_losses.append(np.mean(valid_losses))
-    else:
-        episode_avg_losses.append(0)
-        print(f"WARNING: no valid losses for episode {i}")
 
     plot_rewards(episode_rewards)
     plot_loss(episode_avg_losses)

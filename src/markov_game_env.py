@@ -173,23 +173,25 @@ class MarkovGameEnvironment(ParallelEnv):
         direction = GazeActions(direction)
         agent.gaze = direction
 
-    def get_rewards(self, agent, other_agent):
+    def get_vision_state(self, agent, other_agent):
         """
         1 if you can see the opponent
         you do not know if the opponent can see you
         100 if you have seen the opponent for 3 consecutive steps
+
+        returns (whether agent sees other_agent, whether agent wins)
         """
         gaze_mask = get_gaze_mask(agent.row, agent.col, agent.gaze, self.num_rows, self.num_cols)
 
         if is_visible(gaze_mask, other_agent.row, other_agent.col):
             agent.num_steps_seeing += 1
             if agent.num_steps_seeing == NUM_SEEING_STEPS_TO_WIN:
-                return WIN_REWARD, True
+                return True, True
             else:
-                return SEE_REWARD, False
+                return True, False
         else:
             agent.num_steps_seeing = 0
-            return DEFAULT_REWARD, False
+            return False, False
 
     def step(self, actions):
         """Takes in an action for the current agent (specified by agent_selection).
@@ -208,8 +210,22 @@ class MarkovGameEnvironment(ParallelEnv):
             self.move(agent, movement_action)
             self.gaze(agent, gaze_action)
 
-        you_reward, you_win = self.get_rewards(self.you, self.opp)
-        opp_reward, opp_win = self.get_rewards(self.opp, self.you)
+        you_see, you_win = self.get_vision_state(self.you, self.opp)
+        opp_see, opp_win = self.get_vision_state(self.opp, self.you)
+
+        if you_win or opp_win:
+            if you_win and opp_win:
+                you_reward, opp_reward = WIN_REWARD, WIN_REWARD
+            elif you_win:
+                you_reward, opp_reward = WIN_REWARD, -WIN_REWARD
+            elif opp_win:
+                you_reward, opp_reward = -WIN_REWARD, WIN_REWARD
+        else:
+            you_reward, opp_reward = DEFAULT_REWARD, DEFAULT_REWARD
+            if you_see:
+                you_reward = SEE_REWARD
+            if opp_see:
+                opp_reward = SEE_REWARD
 
         rewards = {self.you.name: you_reward, self.opp.name: opp_reward}
         terminations = {a.name: you_win or opp_win for a in self.agents}
