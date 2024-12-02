@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -27,7 +28,7 @@ is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython:
     from IPython import display
 
-plt.ion()
+# plt.ion()
 
 # if GPU is to be used
 device = torch.device(
@@ -64,10 +65,16 @@ class ReplayMemory(object):
 
 class DQN(nn.Module):
 
-    def __init__(self, n_observations, n_actions):
+    def __init__(self, n_observations, n_actions, size="small"):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
+        if size == "small":
+            n_outputs = 128
+        elif size == "medium":
+            n_outputs = 256
+        else:
+            raise Exception(f"invalid size {size}")
+        self.layer1 = nn.Linear(n_observations, n_outputs)
+        self.layer2 = nn.Linear(n_outputs, 128)
         self.layer3 = nn.Linear(128, n_actions)
 
     # Called with either one element to determine next action, or a batch
@@ -150,13 +157,13 @@ def plot_rewards(show_result=False):
         means = torch.cat((torch.zeros(99), means))
         plt.plot(means.numpy())
 
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        if not show_result:
-            display.display(plt.gcf())
-            display.clear_output(wait=True)
-        else:
-            display.display(plt.gcf())
+    # plt.pause(0.001)  # pause a bit so that plots are updated
+    # if is_ipython:
+    #     if not show_result:
+    #         display.display(plt.gcf())
+    #         display.clear_output(wait=True)
+    #     else:
+    #         display.display(plt.gcf())
 
 
 ############
@@ -209,7 +216,7 @@ def optimize_model():
     optimizer.step()
 
 if torch.cuda.is_available():
-    num_episodes = 100
+    num_episodes = 3000
     num_saves = 10
 elif torch.backends.mps.is_available():
     # macbook
@@ -306,6 +313,9 @@ for i in range(num_episodes):
     if (i + 1) % episodes_per_save == 0:
         save_file = os.path.join(save_dir, f'policy_{i}.pth')
         save_weights(policy_net, save_file)
+        mean_reward = np.mean(episode_rewards[-episodes_per_save:])
+        print(f'Mean reward for last {episodes_per_save} episodes: {mean_reward}')
+
 
 # should be the same as the last checkpoint, but just for convenience:
 save_file = os.path.join(save_dir, f'policy_final.pth')
@@ -313,7 +323,7 @@ save_weights(policy_net, save_file)
 
 # print('Complete')
 plot_rewards(show_result=True)
-plt.ioff()
+# plt.ioff()
 # plt.show()
 plt.savefig(os.path.join(save_dir, f"rewards.png"))
 
