@@ -21,13 +21,14 @@ class DQNParams:
     # LR is the learning rate of the ``AdamW`` optimizer
 
     # BATCH_SIZE = 128
-    BATCH_SIZE = 4096
+    BATCH_SIZE = 2**14 # 16,384 
     GAMMA = 0.99
     EPS_START = 0.9
     EPS_END = 0.05
     EPS_DECAY = 1000
     TAU = 0.005
-    LR = 1e-4
+    # LR = 1e-4
+    LR = 1e-5
 
 # state = belief, next_state = next_belief
 Transition = namedtuple('Transition',
@@ -56,14 +57,19 @@ class DQN(nn.Module):
     def __init__(self, n_observations, n_actions, size="small"):
         super(DQN, self).__init__()
         if size == "small":
-            n_outputs = 128
+            layer_1_size = 128
+            layer_2_size = 128
         elif size == "medium":
-            n_outputs = 256
+            layer_1_size = 256
+            layer_2_size = 128
+        elif size == "large":
+            layer_1_size = 512
+            layer_2_size = 512
         else:
             raise Exception(f"invalid size {size}")
-        self.layer1 = nn.Linear(n_observations, n_outputs)
-        self.layer2 = nn.Linear(n_outputs, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, layer_1_size)
+        self.layer2 = nn.Linear(layer_1_size, layer_2_size)
+        self.layer3 = nn.Linear(layer_2_size, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).

@@ -39,12 +39,14 @@ n_actions = len(MovementActions) * len(GazeActions)
 observations, info = env.reset()
 
 n_observations = env.num_rows * env.num_cols
-policy_net = DQN(n_observations, n_actions).to(device)
-target_net = DQN(n_observations, n_actions).to(device)
+policy_net = DQN(n_observations, n_actions, size="large").to(device)
+target_net = DQN(n_observations, n_actions, size="large").to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
+print(policy_net)
+
 optimizer = optim.AdamW(policy_net.parameters(), lr=params.LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(100_000)
 
 global_steps_done = 0
 episode_rewards = []
@@ -53,7 +55,7 @@ episode_avg_losses = [] # the average loss of each episode
 
 if torch.cuda.is_available():
     num_episodes = 3000
-    num_saves = 10
+    num_saves = 20
 elif torch.backends.mps.is_available():
     # macbook
     num_episodes = 10

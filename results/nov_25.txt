@@ -1,3 +1,18 @@
+(dqn) 00:22:00 andy:~/aa228/pz$ python run_winrate.py
+running winrate for results/dqn_2024_12_01_23:42:33/policy_final.pth vs random
+100%|████████████████████████████████████████████████████████████████████| 1000/1000 [05:50<00:00,  2.85it/s]
+{'you': 608, 'opp': 217, 'both': 29, 'neither': 146}
+winner is you: 0.608
+winner is opp: 0.217
+winner is both: 0.029
+winner is neither: 0.146
+mean timesteps for you: 235.3503289473684
+mean timesteps for opp: 189.02304147465438
+mean timesteps for both: 200.55172413793105
+mean timesteps for neither: 1002.0
+mean timesteps overall: 336.219
+
+
 running winrate for results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth vs random
 100%|████████████████████████████████████████████████████████████████████| 1000/1000 [04:51<00:00,  3.43it/s]
 {'you': 295, 'opp': 555, 'both': 29, 'neither': 121}
@@ -11,6 +26,7 @@ mean timesteps for both: 193.72413793103448
 mean timesteps for neither: 1002.0
 mean timesteps overall: 318.528
 
+# random vs random
 running 1000 iterations
 100%|████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:20<00:00, 48.95it/s]
 {'you': 461, 'opp': 481, 'both': 46, 'neither': 12}
@@ -24,6 +40,7 @@ mean timesteps for both: 213.7826086956522
 mean timesteps for neither: 1002.0
 mean timesteps overall: 193.811
 
+# heuristic vs random
 running 1000 iterations
 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:11<00:00, 87.07it/s]
 {'you': 826, 'opp': 116, 'both': 58, 'neither': 0}
