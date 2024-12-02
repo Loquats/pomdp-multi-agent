@@ -102,7 +102,7 @@ for i in range(num_episodes):
             reward = torch.tensor([rewards["you"]], device=device)
         else:
             print("WTF!")
-            reward = 0
+            reward = torch.tensor([0], device=device)
         
         done = any(terminations.values()) or any(truncations.values()) # TODO: check if this is correct
 
