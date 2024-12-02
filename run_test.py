@@ -1,6 +1,6 @@
 import markov_game_env as markov_game_env
 from pettingzoo.utils import wrappers
-from custom_utils import *
+from src.env_utils import *
 
 
 env = markov_game_env.make_env(render_mode="human")

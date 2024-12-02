@@ -1,0 +1,7 @@
+Notes
+
+Later, you can load these weights using:
+
+policy_net.load_state_dict(torch.load('dqn_policy_weights.pth'))
+
+Note: If you trained on GPU but want to load on CPU later, you'll need to add map_location=torch.device('cpu') to the torch.load() call.

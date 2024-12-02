@@ -1,6 +1,6 @@
 import random
-from belief import DiscreteStateFilter
-from custom_utils import GazeActions, MovementActions, action_to_index, index_to_action
+from src.belief import DiscreteStateFilter
+from src.env_utils import GazeActions, MovementActions, action_to_index
 from abc import ABC, abstractmethod
 
 def template_policy(observation, action_space, agent):

@@ -1,5 +1,5 @@
 import numpy as np
-from custom_utils import get_gaze_bounds
+from src.env_utils import get_gaze_bounds
 
 class DiscreteStateFilter:
     def __init__(self, num_rows, num_cols):

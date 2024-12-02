@@ -1,25 +1,14 @@
 import functools
-import random
-from copy import copy
-import os
 from enum import Enum
 
-import numpy as np
-import gymnasium
 from gymnasium.spaces import Discrete, MultiDiscrete
 from gymnasium.utils import seeding
-import pygame
-from gymnasium import spaces
-
-from pettingzoo.utils import wrappers
-from pettingzoo.utils.agent_selector import agent_selector
-
-
 from pettingzoo import ParallelEnv
+
 from gridworld.grid import Grid
 
-from custom_utils import *
-from text_grid import TextGrid
+from src.env_utils import *
+from src.text_grid import TextGrid
 
 RENDER_FPS = 1
 
