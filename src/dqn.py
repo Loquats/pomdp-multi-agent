@@ -28,7 +28,7 @@ class DQNParams:
     EPS_DECAY = 1000
     TAU = 0.005
     # LR = 1e-4
-    LR = 2e-5
+    LR = 3e-5
 
 # state = belief, next_state = next_belief
 Transition = namedtuple('Transition',
@@ -117,15 +117,20 @@ class SimpleDQN(nn.Module):
         x = F.relu(self.layer2(x))
         return self.layer3(x)
     
-def select_action(global_steps_done, state, policy_net, params, env, device):
+def select_action(global_steps_done, observation, bootstrap_policy, state, policy_net, params, env, device):
     sample = random.random()
     eps_threshold = params.EPS_END + (params.EPS_START - params.EPS_END) * \
         math.exp(-1. * global_steps_done / params.EPS_DECAY)
+    
+    # get bootstrap action and maybe don't use it. Must always feed observaiton to update belief though!
+    bootstrap_action = bootstrap_policy.get_action(observation)
     if sample > eps_threshold:
         return get_policy_action(state, policy_net)
     else:
         # get random action
-        return torch.tensor([[env.action_space(env.agent_names[0]).sample()]], device=device, dtype=torch.long)
+        # return torch.tensor([[env.action_space(env.agent_names[0]).sample()]], device=device, dtype=torch.long)
+        # return bootstrap action
+        return torch.tensor([[bootstrap_action]], device=device, dtype=torch.long)
     
 def get_policy_action(state, policy_net):
     with torch.no_grad():

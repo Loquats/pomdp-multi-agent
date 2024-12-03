@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from src.env_utils import MovementActions, GazeActions, index_to_action
 from src.belief import DiscreteStateFilter
-from src.policies import RandomPolicy
+from src.policies import *
 from src.markov_game_env import MarkovGameEnvironment, InitialState
 from src.dqn import *
 from src.plotting import *
@@ -82,17 +82,21 @@ for i in range(num_episodes):
     belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
 
     # Initialize the environment and get its state
-    observations, infos = env.reset()    
+    observations, infos = env.reset()
+    bootstrap_policy = Policy.get("heuristic", env)
+
     belief_state = create_dqn_belief_state(observations["you"], belief_filter.get_belief(), device)
     # print(belief_state.shape)
     # print(belief_state)
 
     episode_memory = ReplayMemory(1000)
     while env.agent_names:
+        print("timestep", env.timestep)
+        env.print_locations()
         actions = {}
         for agent in env.agent_names:
             if agent == "you":
-                tensor_action = select_action(global_steps_done, belief_state, policy_net, params, env, device)
+                tensor_action = select_action(global_steps_done, observations[agent], bootstrap_policy, belief_state, policy_net, params, env, device)
                 actions[agent] = tensor_action.item()
             else:
                 actions[agent] = random_policy.get_action(observations[agent])

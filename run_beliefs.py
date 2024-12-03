@@ -1,8 +1,8 @@
-from markov_game_env import MarkovGameEnvironment, InitialState
+from src.markov_game_env import MarkovGameEnvironment, InitialState
 from src.env_utils import *
-from policies import *
+from src.policies import *
 from pettingzoo.utils import wrappers
-from belief import DiscreteStateFilter
+from src.belief import DiscreteStateFilter
 
 env = MarkovGameEnvironment(fully_observable=False, render_mode="pygame", initial_state=InitialState.UNIFORM)
 # as a sanity check, run with full observability:
