@@ -31,6 +31,7 @@ print(f"device: {device}")
 ###########
 
 params = DQNParams()
+print(params)
 
 # Get number of actions from gym action space
 n_actions = len(MovementActions) * len(GazeActions)
@@ -132,22 +133,27 @@ for i in range(num_episodes):
     else:
         print(f"skipping episode {i} because neither agent won")
 
-    #####
-    # Perform one step of the optimization (on the policy network)
-    loss = optimize_model(optimizer, policy_net, target_net, memory, params, device)
-    if loss is None:
-        loss = 0
-        print(f"WARNING: loss is None for episode {i}")
-    episode_avg_losses.append(loss)
+    # print(len(memory))
+    if len(memory) >= params.BATCH_SIZE:
+        #####
+        # Perform one step of the optimization (on the policy network)
+        loss = optimize_model(optimizer, policy_net, target_net, memory, params, device)
+        if loss is None:
+            loss = 0
+            print(f"WARNING: loss is None for episode {i}")
+        episode_avg_losses.append(loss)
 
-    # Soft update of the target network's weights
-    # θ′ ← τ θ + (1 −τ )θ′
-    target_net_state_dict = target_net.state_dict()
-    policy_net_state_dict = policy_net.state_dict()
-    for key in policy_net_state_dict:
-        target_net_state_dict[key] = policy_net_state_dict[key]*params.TAU + target_net_state_dict[key]*(1-params.TAU)
-    target_net.load_state_dict(target_net_state_dict)
-    #####
+        # Soft update of the target network's weights
+        # θ′ ← τ θ + (1 −τ )θ′
+        target_net_state_dict = target_net.state_dict()
+        policy_net_state_dict = policy_net.state_dict()
+        for key in policy_net_state_dict:
+            target_net_state_dict[key] = policy_net_state_dict[key]*params.TAU + target_net_state_dict[key]*(1-params.TAU)
+        target_net.load_state_dict(target_net_state_dict)
+        #####
+    else:
+        loss = 0
+        episode_avg_losses.append(loss)
 
 
     discounted_reward = rewards["you"] * params.GAMMA ** env.timestep

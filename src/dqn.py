@@ -28,7 +28,7 @@ class DQNParams:
     EPS_DECAY = 1000
     TAU = 0.005
     # LR = 1e-4
-    LR = 1e-5
+    LR = 2e-5
 
 # state = belief, next_state = next_belief
 Transition = namedtuple('Transition',
