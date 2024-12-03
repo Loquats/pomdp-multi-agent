@@ -52,10 +52,49 @@ class ReplayMemory(object):
     
 ###########
 
-class DQN(nn.Module):
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class ConvDQN(nn.Module):
+    def __init__(self, n_observations, n_actions, size):
+        """
+        62706 trainable parameters
+        """
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=2, out_channels=5, kernel_size=3, padding="same")
+        # self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(5, 6, 3, padding="same")
+        self.fc1 = nn.Linear(6 * 10 * 20, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, n_actions)
+
+    def forward(self, x):
+        # print(0, x.shape)
+        # x = self.pool(F.relu(self.conv1(x)))
+        x = F.relu(self.conv1(x))
+        # print(1, x.shape)
+        # x = self.pool(F.relu(self.conv2(x)))
+        x = F.relu(self.conv2(x))
+        # print(2, x.shape)
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        # print(3, x.shape)
+        # print(self.fc1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+class SimpleDQN(nn.Module):
 
     def __init__(self, n_observations, n_actions, size="small"):
-        super(DQN, self).__init__()
+        """
+        small: 44820 trainable parameters
+        medium: 86932 trainable parameters
+        large: 375828 trainable parameters
+        """
+        super(SimpleDQN, self).__init__()
         if size == "small":
             layer_1_size = 128
             layer_2_size = 128
@@ -179,3 +218,21 @@ def shape_reward(reward_tensor, you_win):
     # assert reward != 0
     
     return torch.tensor([reward])
+    
+def create_dqn_belief_state(observation, belief, device):
+    """
+    Return a tensor with shape (1, 2, *(belief.shape)), eg. (1, 2, 10, 20)
+    First channel is the current agent's location
+    Second channel is the belief
+    1 is the batch dimension
+    """
+    your_row, your_col, _, _ = observation
+
+    channel2 = torch.from_numpy(belief).float()
+    channel1 = torch.zeros_like(channel2)
+    channel1[your_row, your_col] = 1.0
+    
+    tensor = torch.stack([channel1, channel2], dim=0)
+    
+    # Move to device and add batch dimension
+    return tensor.unsqueeze(0).to(device)

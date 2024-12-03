@@ -39,11 +39,13 @@ n_actions = len(MovementActions) * len(GazeActions)
 observations, info = env.reset()
 
 n_observations = env.num_rows * env.num_cols
-policy_net = DQN(n_observations, n_actions, size="large").to(device)
-target_net = DQN(n_observations, n_actions, size="large").to(device)
+policy_net = ConvDQN(n_observations, n_actions, size="medium").to(device)
+target_net = ConvDQN(n_observations, n_actions, size="medium").to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
+print(f"{sum(p.numel() for p in policy_net.parameters() if p.requires_grad)} trainable parameters")
 print(policy_net)
+print()
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=params.LR, amsgrad=True)
 memory = ReplayMemory(100_000)
@@ -54,8 +56,8 @@ episode_timesteps = []
 episode_avg_losses = [] # the average loss of each episode
 
 if torch.cuda.is_available():
-    num_episodes = 3000
-    num_saves = 20
+    num_episodes = 300
+    num_saves = 5
 elif torch.backends.mps.is_available():
     # macbook
     num_episodes = 10
@@ -69,7 +71,7 @@ episodes_per_save = num_episodes // num_saves
 print(f"num_episodes: {num_episodes}")
 print(f"num_saves: {num_saves}")
 print(f"episodes_per_save: {episodes_per_save}")
-
+print()
 
 save_dir = create_save_directory()
 random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
@@ -79,8 +81,10 @@ for i in range(num_episodes):
     belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
 
     # Initialize the environment and get its state
-    observations, infos = env.reset()
-    belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
+    observations, infos = env.reset()    
+    belief_state = create_dqn_belief_state(observations["you"], belief_filter.get_belief(), device)
+    # print(belief_state.shape)
+    # print(belief_state)
 
     episode_memory = ReplayMemory(1000)
     while env.agent_names:
@@ -109,7 +113,7 @@ for i in range(num_episodes):
         if done:
             next_belief_state = None
         else:
-            next_belief_state = torch.tensor(belief_filter.get_belief_vector(), dtype=torch.float32, device=device).unsqueeze(0)
+            next_belief_state = create_dqn_belief_state(observations["you"], belief_filter.get_belief(), device)
 
         episode_memory.push(belief_state, tensor_action, next_belief_state, reward)
 

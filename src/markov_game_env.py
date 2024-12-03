@@ -65,8 +65,8 @@ class MarkovGameEnvironment(ParallelEnv):
         self.you = Agent("you")
         self.opp = Agent("opp")
 
-        self.num_cols = 20
         self.num_rows = 10
+        self.num_cols = 20
 
 
     def _seed(self, seed=None):

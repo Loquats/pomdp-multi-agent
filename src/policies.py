@@ -1,5 +1,5 @@
 import random
-from src.dqn import DQN, get_policy_action
+from src.dqn import *
 from src.belief import DiscreteStateFilter
 from src.env_utils import GazeActions, MovementActions, action_to_index, index_to_action
 from abc import ABC, abstractmethod
@@ -126,7 +126,7 @@ class BeliefDQNPolicy(Policy):
         if self.prev_action:
             self.belief_filter.update(observation, self.prev_action)
 
-        belief_state = torch.tensor(self.belief_filter.get_belief_vector(), dtype=torch.float32, device=self.device).unsqueeze(0)
+        belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), device)
         action_index = get_policy_action(belief_state, self.policy_net).item()
 
         self.prev_action = index_to_action(action_index)

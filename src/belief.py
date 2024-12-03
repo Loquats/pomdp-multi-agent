@@ -118,6 +118,9 @@ class DiscreteStateFilter:
     
     def get_belief_vector(self):
         return self.belief.flatten()
+    
+    def get_belief(self):
+        return self.belief
 
     # def obs_prob(self, observation, gaze_action, row, col):
     #     """
