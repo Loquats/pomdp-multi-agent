@@ -131,8 +131,8 @@ class MarkovGameEnvironment(ParallelEnv):
         !!! the order is always (this_agent_observations..., other_agent_observations...)
         """
         observations = {
-            "you": (self.you.row, self.you.col, self.opp.row, self.opp.col),
-            "opp": (self.opp.row, self.opp.col, self.you.row, self.you.col),
+            "you": Observation(self.you.row, self.you.col, self.opp.row, self.opp.col),
+            "opp": Observation(self.opp.row, self.opp.col, self.you.row, self.you.col),
         }
         return observations
     
@@ -142,15 +142,15 @@ class MarkovGameEnvironment(ParallelEnv):
         """
         if in_gaze_box(self.you.row, self.you.col, self.you.gaze, self.opp.row, self.opp.col, self.num_rows, self.num_cols):
             # print("opponent in your gaze box")
-            you_observation = (self.you.row, self.you.col, self.opp.row, self.opp.col)
+            you_observation = Observation(self.you.row, self.you.col, self.opp.row, self.opp.col)
         else:
             # print("opponent not in your gaze box")
-            you_observation = (self.you.row, self.you.col, -1, -1)
+            you_observation = Observation(self.you.row, self.you.col, -1, -1)
 
         if in_gaze_box(self.opp.row, self.opp.col, self.opp.gaze, self.you.row, self.you.col, self.num_rows, self.num_cols):
-            opp_observation = (self.opp.row, self.opp.col, self.you.row, self.you.col)
+            opp_observation = Observation(self.opp.row, self.opp.col, self.you.row, self.you.col)
         else:
-            opp_observation = (self.opp.row, self.opp.col, -1, -1)
+            opp_observation = Observation(self.opp.row, self.opp.col, -1, -1)
 
         observations = {
             "you": you_observation,
@@ -206,9 +206,9 @@ class MarkovGameEnvironment(ParallelEnv):
         And any internal state used by observe() or render()
         """
         for agent in self.agents:
-            movement_action, gaze_action = index_to_action(actions[agent.name])
-            self.move(agent, movement_action)
-            self.gaze(agent, gaze_action)
+            action = index_to_action(actions[agent.name])
+            self.move(agent, action.move)
+            self.gaze(agent, action.gaze)
 
         you_see, you_win = self.get_vision_state(self.you, self.opp)
         opp_see, opp_win = self.get_vision_state(self.opp, self.you)

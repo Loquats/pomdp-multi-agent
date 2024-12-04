@@ -1,5 +1,6 @@
 from enum import Enum
 import functools
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -17,24 +18,30 @@ class MovementActions(Enum):
     S = 3
     W = 4
 
-"""
-v0: quadrants
-"""
 class GazeActions(Enum):
     NE = 0
     SE = 1
     SW = 2
     NW = 3
 
-# class GazeActions(Enum):
-#     N = 0
-#     NE = 1
-#     E = 2
-#     SE = 3
-#     S = 4
-#     SW = 5
-#     W = 6
-#     NW = 7
+@dataclass(frozen=True)
+class State:
+    my_row: int
+    my_col: int
+    opp_row: int
+    opp_col: int
+
+@dataclass(frozen=True)
+class Action:
+    move: MovementActions
+    gaze: GazeActions
+
+@dataclass(frozen=True)
+class Observation:
+    my_row: int
+    my_col: int
+    opp_row: int
+    opp_col: int
 
 class Agent:
     def __init__(self, name):
@@ -78,12 +85,12 @@ def get_gaze_bounds(gaze, row, col, num_rows, num_cols):
     return (min_row, min_col, max_row, max_col)
 
 @functools.lru_cache(maxsize=128)
-def get_gaze_mask(row, col, gaze, rows, cols):
+def get_gaze_mask(row, col, gaze, rows, cols, pos_value=1, neg_value=0):
     """
     Returns a binary numpy array with 1 if cell is in agent's gaze, 0 otherwise.
     Array dimension is (num_y_cells, num_x_cells). <- important!
     """
-    gaze_mask = np.zeros((rows, cols))
+    gaze_mask = np.full((rows, cols), neg_value)
     
     top_left = get_top_left(gaze, row, col)
     
@@ -95,11 +102,14 @@ def get_gaze_mask(row, col, gaze, rows, cols):
             cur_col = top_left[1] + col
             if cur_col < 0 or cur_col >= cols:
                 continue
-            gaze_mask[cur_row, cur_col] = 1
+            gaze_mask[cur_row, cur_col] = pos_value
     return gaze_mask
     
 def is_visible(gaze_mask, row, col):
-    # deprecated because inefficient
+    """
+    deprecated because inefficient
+    TODO: replace this with in_gaze_box, which does the same thing!
+    """
     return gaze_mask[row, col] == 1
 
 def in_gaze_box(my_row, my_col, my_gaze_action, target_row, target_col, num_rows, num_cols):    
@@ -117,7 +127,9 @@ def index_to_action(index):
     4 (<MovementActions.N: 1>, <GazeActions.N: 0>)
     etc.
     """
-    return MovementActions(index // len(GazeActions)), GazeActions(index % len(GazeActions))
+    move = MovementActions(index // len(GazeActions))
+    gaze = GazeActions(index % len(GazeActions))
+    return Action(move, gaze)
 
-def action_to_index(move_action, gaze_action):
-    return move_action.value * len(GazeActions) + gaze_action.value
+def action_to_index(action):
+    return action.move.value * len(GazeActions) + action.gaze.value

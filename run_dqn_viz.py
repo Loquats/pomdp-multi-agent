@@ -7,22 +7,25 @@ env = MarkovGameEnvironment(fully_observable=False, render_mode="pygame", initia
 # env = MarkovGameEnvironment(fully_observable=True, render_mode="pygame")
 observations, infos = env.reset()
 print(f"Agent names: {env.agent_names}")
-print("Action spaces:")
-print(env.action_space(env.agent_names[0]))
-print(env.action_space(env.agent_names[1]))
 print(f"Observations: {observations}")
+my_row, my_col = observations["you"].my_row, observations["you"].my_col
 
 policies = {
-    "you": Policy.get("results/dqn_2024_12_03_00:56:28/policy_final.pth", env),
+    "you": PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=5, num_rollouts=100),
+    # "you": Policy.get("results/dqn_2024_12_03_00:56:28/policy_final.pth", env),
     # "you": Policy.get("results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth", env),
     "opp": Policy.get("random", env),
 }
 
+prev_action = None
 while env.agent_names:
-    # env.print_locations() # helpful for debugging weird policies
-    actions = {agent: policies[agent].get_action(observations[agent]) for agent in env.agent_names}
+    env.print_locations() # helpful for debugging weird policies
+    actions = {agent: policies[agent].get_action(observations[agent], prev_action) for agent in env.agent_names}
+    prev_action = actions["you"]
 
-    print(index_to_action(actions["you"]))
+    actions = {agent: action_to_index(action) for agent, action in actions.items()}
+
+    print(prev_action)
 
     observations, rewards, terminations, truncations, infos = env.step(actions)
 

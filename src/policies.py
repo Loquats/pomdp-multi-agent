@@ -4,15 +4,16 @@ from src.belief import DiscreteStateFilter
 from src.env_utils import GazeActions, MovementActions, action_to_index, index_to_action
 from abc import ABC, abstractmethod
 
+from gymnasium.spaces import Discrete
 import torch
 
-def template_policy(observation, action_space, agent):
-    pass
+from src.policy_utils import *
+from src.mdp import BeliefStateMDP
 
 class Policy(ABC):
 
     @abstractmethod
-    def get_action(self, observation):
+    def get_action(self, observation, prev_action):
         pass
 
     @staticmethod
@@ -24,13 +25,62 @@ class Policy(ABC):
         return BeliefDQNPolicy(name, env.num_rows, env.num_cols)
         
 
+class PolicyWithRollouts(Policy):
+    def __init__(self, my_row, my_col, num_rows, num_cols, depth = 5, num_rollouts = 100):
+        self.depth = depth
+        self.num_rollouts = num_rollouts
+        self.num_actions = len(MovementActions) * len(GazeActions)
+        self.action_space = Discrete(self.num_actions)
+        self.mdp = BeliefStateMDP(num_rows, num_cols)
+        # the current belief!! always use this
+        self.belief_filter = DiscreteStateFilter(my_row, my_col, num_rows, num_cols)
+
+    def make_rollout_policy(self):
+        rollout_policies = [
+            RandomPolicy(self.action_space),
+            SamplingHeuristicPolicy(None, None, belief_filter=self.belief_filter),
+        ]
+        return StochasticMixedPolicy(rollout_policies, [0.2, 0.8])
+
+    def get_action(self, observation, prev_action):
+        if prev_action:
+            self.belief_filter = update(self.belief_filter, observation, prev_action)
+        
+        action_rewards = {index_to_action(i): [] for i in range(self.num_actions)}
+
+        for _ in range(self.num_rollouts):
+            # make_rollout_policy within the for loop because we need to reset the belief to self.belief
+            rollout_policy = self.make_rollout_policy()
+            action, discounted_reward = rollout(self.mdp, observation, self.belief_filter, rollout_policy, self.depth)
+            action_rewards[action].append(discounted_reward)
+        
+        """
+        pessimistic under uncertainty
+        TODO: replace float("-inf") with heuristic estimate
+        """
+        q_value_estimate = {action: np.mean(rr) if len(rr) > 0 else float("-inf") for action, rr in action_rewards.items()}
+        greedy_action = max(q_value_estimate, key=q_value_estimate.get)
+        return greedy_action
+
+class StochasticMixedPolicy(Policy):
+
+    def __init__(self, policies, probabilities):
+        self.policies = policies
+        self.probabilities = probabilities
+
+    def get_action(self, observation, prev_action):
+        policy = random.choices(self.policies, weights=self.probabilities, k=1)[0]
+        return policy.get_action(observation, prev_action)
+
+
 class RandomPolicy(Policy):
 
     def __init__(self, action_space):
         self.action_space = action_space
 
-    def get_action(self, observation):
-        return self.action_space.sample()
+    def get_action(self, observation=None, prev_action=None):
+        index = self.action_space.sample()
+        return index_to_action(index)
     
     def __str__(self):
         return "RandomPolicy"
@@ -42,9 +92,11 @@ class SamplingHeuristicPolicy:
     move in one of the directions towards the opponent (break ties randomly)
     gaze in the direction of the opponent (break ties randomly)
     """
-    def __init__(self, num_rows, num_cols):
-        self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
-        self.prev_action = None
+    def __init__(self, num_rows, num_cols, belief_filter):
+        if belief_filter:
+            self.belief_filter = belief_filter
+        else:
+            self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
 
     def __str__(self):
         return "SamplingHeuristicPolicy"
@@ -52,13 +104,13 @@ class SamplingHeuristicPolicy:
     def get_action(self, observation, prev_action):
         # print(self.belief_filter) # for debugging, it is helpful to print the belief filter before the update happens
         if prev_action:
-            self.belief_filter.update(observation, prev_action)
-        # if self.prev_action:
-        #     self.belief_filter.update(observation, self.prev_action)
+            self.belief_filter = update(self.belief_filter, observation, prev_action)
 
         # get an action based on the current belief
-        my_row, my_col, opp_row, opp_col = observation
-        target_row, target_col = self.belief_filter.sample()
+        my_row, my_col = observation.my_row, observation.my_col
+        state = self.belief_filter.sample()
+        target_row = state.opp_row
+        target_col = state.opp_col
 
         move_actions = []
         if my_row == target_row and my_col == target_col:
@@ -89,9 +141,7 @@ class SamplingHeuristicPolicy:
         gaze_action = random.choice(gaze_actions)
 
         # print(f"move: {move_action}, gaze: {gaze_action}")
-
-        self.prev_action = (move_action, gaze_action)
-        return action_to_index(move_action, gaze_action)
+        return Action(move_action, gaze_action)
 
 class BeliefDQNPolicy(Policy):
     
@@ -126,15 +176,12 @@ class BeliefDQNPolicy(Policy):
     def __str__(self):
         return f"BeliefDQNPolicy({self.filepath})"
     
-    def get_action(self, observation):
-        # print(self.belief_filter) # for debugging, it is helpful to print the belief filter before the update happens
-        if self.prev_action:
-            self.belief_filter.update(observation, self.prev_action)
+    def get_action(self, observation, prev_action):
+        if prev_action:
+            self.belief_filter = update(self.belief_filter, observation, prev_action)
 
         belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), self.device)
         action_index = get_policy_action(belief_state, self.policy_net).item()
-
-        self.prev_action = index_to_action(action_index)
         return action_index
 
 def is_medium_policy(path):
