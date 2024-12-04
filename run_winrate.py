@@ -7,7 +7,8 @@ env.reset()
 
 # Always use Policy.get() to get a fresh policy. You cannot reuse stateful policies like the heuristic policy
 opponent_policies = ["random"]
-you_policies = ["results/dqn_2024_12_03_00:56:28/policy_1499.pth"]
+you_policies = ["useless"]
+# you_policies = ["results/dqn_2024_12_03_00:56:28/policy_1499.pth"]
 # you_policies = ["results/dqn_2024_12_02_00:31:12/policy_final.pth"]
 # you_policies = ["results/dqn_2024_12_01_23:42:33/policy_final.pth"]
 # you_policies = ["results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth"]
@@ -21,5 +22,5 @@ for opponent_policy in opponent_policies:
             you_policy_name=you_policy,
             opp_policy_name=opponent_policy,
             verbose=True,
-            num_iterations=1000,
+            num_iterations=100,
         )

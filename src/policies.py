@@ -16,17 +16,21 @@ class Policy(ABC):
     def get_action(self, observation, prev_action):
         pass
 
+    # @abstractmethod
+    # def reset(self, observation):
+    #     pass
+
     @staticmethod
     def get(name, env):
         if name == "random":
             return RandomPolicy(env.action_space())
         if name == "heuristic":
-            return SamplingHeuristicPolicy(env.num_rows, env.num_cols)
+            return HeuristicPolicy(env.num_rows, env.num_cols, belief_filter=None)
         return BeliefDQNPolicy(name, env.num_rows, env.num_cols)
         
 
 class PolicyWithRollouts(Policy):
-    def __init__(self, my_row, my_col, num_rows, num_cols, depth = 5, num_rollouts = 100):
+    def __init__(self, my_row, my_col, num_rows, num_cols, depth, num_rollouts):
         self.depth = depth
         self.num_rollouts = num_rollouts
         self.num_actions = len(MovementActions) * len(GazeActions)
@@ -35,16 +39,27 @@ class PolicyWithRollouts(Policy):
         # the current belief!! always use this
         self.belief_filter = DiscreteStateFilter(my_row, my_col, num_rows, num_cols)
 
+    # def reset(self, observation):
+    #     # raise Exception("dunno how to reset my_row, my_col")
+    #     self.belief_filter = DiscreteStateFilter(observation.my_row, observation.my_col, self.num_rows, self.num_cols)
+
     def make_rollout_policy(self):
-        rollout_policies = [
-            RandomPolicy(self.action_space),
-            SamplingHeuristicPolicy(None, None, belief_filter=self.belief_filter),
-        ]
-        return StochasticMixedPolicy(rollout_policies, [0.2, 0.8])
+        # rollout_policies = [
+        #     RandomPolicy(self.action_space),
+        #     HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode="greedy"),
+        # ]
+        # return StochasticMixedPolicy(rollout_policies, [0.01, 0.99])
+        return HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode="greedy")
 
     def get_action(self, observation, prev_action):
         if prev_action:
+            # print("updating belief from")
+            # print(self.belief_filter)
             self.belief_filter = update(self.belief_filter, observation, prev_action)
+            # print("to")
+            # print(self.belief_filter)
+        # else:
+        #     print(f"no prev action {prev_action}")
         
         action_rewards = {index_to_action(i): [] for i in range(self.num_actions)}
 
@@ -60,6 +75,15 @@ class PolicyWithRollouts(Policy):
         """
         q_value_estimate = {action: np.mean(rr) if len(rr) > 0 else float("-inf") for action, rr in action_rewards.items()}
         greedy_action = max(q_value_estimate, key=q_value_estimate.get)
+
+        # move_q = {move: 0 for move in [MovementActions.DO_NOTHING, MovementActions.N, MovementActions.E, MovementActions.S, MovementActions.W]}
+        # for action, q in q_value_estimate.items():
+        #     if q > float("-inf"):
+        #         # print(action.move, q)
+        #         move_q[action.move] += q
+        # for move, q in move_q.items():
+        #     print(move, q)
+        # print()
         return greedy_action
 
 class StochasticMixedPolicy(Policy):
@@ -69,14 +93,22 @@ class StochasticMixedPolicy(Policy):
         self.probabilities = probabilities
 
     def get_action(self, observation, prev_action):
-        policy = random.choices(self.policies, weights=self.probabilities, k=1)[0]
-        return policy.get_action(observation, prev_action)
+        policy_actions = [(policy, policy.get_action(observation, prev_action)) for policy in self.policies]
+        policy, action = random.choices(policy_actions, weights=self.probabilities, k=1)[0]
+        # print(f"choosing {action} from rollout policy {policy}")
+        return action
 
+    def reset(self, observation):
+        for policy in self.policies:
+            policy.reset(observation)
 
 class RandomPolicy(Policy):
 
     def __init__(self, action_space):
         self.action_space = action_space
+
+    # def reset(self, observation):
+    #     pass
 
     def get_action(self, observation=None, prev_action=None):
         index = self.action_space.sample()
@@ -86,17 +118,22 @@ class RandomPolicy(Policy):
         return "RandomPolicy"
 
 
-class SamplingHeuristicPolicy:
+class HeuristicPolicy:
     """
     find which quadrant the opponent is in
     move in one of the directions towards the opponent (break ties randomly)
     gaze in the direction of the opponent (break ties randomly)
     """
-    def __init__(self, num_rows, num_cols, belief_filter):
+    def __init__(self, my_row, my_col, num_rows, num_cols, belief_filter, mode):
+        self.mode = mode
         if belief_filter:
             self.belief_filter = belief_filter
         else:
-            self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
+            self.belief_filter = DiscreteStateFilter(my_row, my_col, num_rows, num_cols)
+        self._reset_belief_filter = belief_filter
+
+    # def reset(self, observation):
+    #     self.belief_filter = self._reset_belief_filter
 
     def __str__(self):
         return "SamplingHeuristicPolicy"
@@ -108,9 +145,13 @@ class SamplingHeuristicPolicy:
 
         # get an action based on the current belief
         my_row, my_col = observation.my_row, observation.my_col
-        state = self.belief_filter.sample()
-        target_row = state.opp_row
-        target_col = state.opp_col
+        if self.mode == "greedy":
+            target_row, target_col = self.belief_filter.get_center_of_mass()
+            # print("center of mass at", target_row, target_col)
+        elif self.mode == "sample":
+            state = self.belief_filter.sample()
+            target_row = state.opp_row
+            target_col = state.opp_col
 
         move_actions = []
         if my_row == target_row and my_col == target_col:
@@ -169,9 +210,10 @@ class BeliefDQNPolicy(Policy):
                 size = "small"
             self.policy_net = SimpleDQN(n_observations, n_actions, size=size).to(self.device)
         self.policy_net.load_state_dict(torch.load(self.filepath))
-
         self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
-        self.prev_action = None
+
+    # def reset(self):
+    #     self.belief_filter = DiscreteStateFilter(self.num_rows, self.num_cols)
 
     def __str__(self):
         return f"BeliefDQNPolicy({self.filepath})"

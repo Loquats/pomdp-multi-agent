@@ -27,7 +27,7 @@ from src.env_utils import *
         
 class BeliefStateMDP:
     GAZE_REWARD = 1
-    NO_GAZE_REWARD = -1
+    NO_GAZE_REWARD = 0
 
     def __init__(self, num_rows, num_cols, gamma=0.95):
         self.num_rows = num_rows

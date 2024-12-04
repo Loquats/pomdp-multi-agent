@@ -1,6 +1,12 @@
 import numpy as np
 from src.env_utils import *
 
+def validate(dsf, obs, action):
+    new_row, new_col = dsf.move(action.move)
+
+    assert new_row == obs.my_row
+    assert new_col == obs.my_col
+
 def update(dsf, obs, action):
     """
     returns a NEW dsf
@@ -9,6 +15,13 @@ def update(dsf, obs, action):
         (opponent_row, opponent_col) is (-1, -1) if not observed
     action: 
     """
+    try:
+        validate(dsf, obs, action)
+    except AssertionError as e:
+        print(obs)
+        print(action)
+        print(dsf)
+        raise e
     
     if obs.opp_row == -1 and obs.opp_col == -1:
         # print("CAN'T SEE OPPONENT")
@@ -80,7 +93,8 @@ class DiscreteStateFilter:
             row_str = ' '.join(f'{x:.3f}' for x in row)
             rows.append(row_str)
         # Join rows with newlines
-        return '\n'.join(rows)
+        opp = '\n'.join(rows)
+        return f"DiscreteStateFilter(my_row={self.my_row},my_col={self.my_col},opp_belief=\n{opp})"
     
     def sample(self):
         """
@@ -134,3 +148,14 @@ class DiscreteStateFilter:
     #         # we observe the opponent at s'
     #         return 1.0
 
+    def move(self, move_action):
+        if move_action == MovementActions.N and self.my_row > 0:
+            return self.my_row - 1, self.my_col
+        elif move_action == MovementActions.E and self.my_col < self.num_cols - 1:
+            return self.my_row, self.my_col + 1
+        elif move_action == MovementActions.S and self.my_row < self.num_rows - 1:
+            return self.my_row + 1, self.my_col
+        elif move_action == MovementActions.W and self.my_col > 0:
+            return self.my_row, self.my_col - 1
+        else:
+            return self.my_row, self.my_col

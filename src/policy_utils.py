@@ -7,25 +7,17 @@ def randstep(mdp, dsf_belief, action):
     """
     Ch. 21.7, algorithm 21.11 randstep
     """
-    state = dsf_belief.sample()
-    next_state = mdp.sample_next_state(state, action)
-    reward = mdp.state_reward(state, action)
-    observation = mdp.get_observation(action, next_state=next_state)
-    next_belief = update(dsf_belief, observation, action)
+    state = dsf_belief.sample() # stochastic
+    next_state = mdp.sample_next_state(state, action) # stochastic
+    reward = mdp.state_reward(state, action) # deterministic
+    observation = mdp.get_observation(action, next_state=next_state) # deterministic
+    next_belief = update(dsf_belief, observation, action) # deterministic
     return next_belief, reward, observation
 
-# def lookahead_with_rollouts(mdp: BeliefStateMDP, observation: Observation, dsf_belief: DiscreteStateFilter, rollout_policy, depth: int):
-#     """
-#     Algorithm 9.1
-#     See Chapter 22.1 for POMDPs, which is based on Ch. 9.2 for MDPs
-#     This is a type of receding horizon planning (Ch. 9.1)
-
-#     state in MDPs = dsf_belief in POMDPs
-#     """
-#     utility = rollout(mdp, observation, dsf_belief, rollout_policy, depth)
-#     return greedy(mdp, 0, dsf_belief)
-
 def rollout(mdp, observation, dsf_belief: DiscreteStateFilter, policy, depth):
+    """
+    the only stochastic part of this function is randstep
+    """
     discounted_reward = 0.0
     prev_action = None
     first_action = None
@@ -36,7 +28,9 @@ def rollout(mdp, observation, dsf_belief: DiscreteStateFilter, policy, depth):
         dsf_belief, reward, observation = randstep(mdp, dsf_belief, action)
         discounted_reward += mdp.gamma**i * reward
         prev_action = action
+        # print(f"depth {i} {action} {reward}")
     return first_action, discounted_reward
+
 
 def greedy(mdp, utility, dsf_belief):
     # u, action = 

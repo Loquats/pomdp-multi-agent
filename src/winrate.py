@@ -23,13 +23,22 @@ def run_winrate(env, you_policy_name, opp_policy_name, num_iterations=1000, verb
         observations, infos = env.reset()
 
         policies = {
-            "you": Policy.get(you_policy_name, env),
+            # "you": Policy.get(you_policy_name, env),
+            "you": PolicyWithRollouts(observations["you"].my_row, observations["you"].my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100),
             "opp": Policy.get(opp_policy_name, env),
         }
 
+        prev_action = None
         while env.agent_names:
             # env.print_locations() # helpful for debugging weird policies
-            actions = {agent: policies[agent].get_action(observations[agent]) for agent in env.agent_names}
+            actions = {agent: policies[agent].get_action(observations[agent], prev_action) for agent in env.agent_names}
+            prev_action = actions["you"]
+
+            actions = {agent: action_to_index(action) for agent, action in actions.items()}
+
+            if verbose:
+                print(prev_action)
+
             observations, rewards, terminations, truncations, infos = env.step(actions)
 
         you_win = infos[env.you.name]["win"]
@@ -47,6 +56,9 @@ def run_winrate(env, you_policy_name, opp_policy_name, num_iterations=1000, verb
             wins["neither"] += 1
             timesteps["neither"].append(env.timestep)
         env.close()
+
+        if verbose:
+            print(wins)
 
     if verbose:
         print(wins)
