@@ -55,10 +55,11 @@ global_steps_done = 0
 episode_rewards = []
 episode_timesteps = []
 episode_avg_losses = [] # the average loss of each episode
+episode_eps = []
 
 if torch.cuda.is_available():
-    num_episodes = 300
-    num_saves = 5
+    num_episodes = 3000
+    num_saves = 10
 elif torch.backends.mps.is_available():
     # macbook
     num_episodes = 10
@@ -77,6 +78,8 @@ print()
 save_dir = create_save_directory()
 random_policy = RandomPolicy(env.action_space(env.agent_names[0]))
 
+first_optimization = True
+
 for i in range(num_episodes):
 # for i in tqdm(range(num_episodes)):
     belief_filter = DiscreteStateFilter(env.num_rows, env.num_cols)
@@ -84,6 +87,7 @@ for i in range(num_episodes):
     # Initialize the environment and get its state
     observations, infos = env.reset()
     bootstrap_policy = Policy.get("heuristic", env)
+    prev_action_tuple = None
 
     belief_state = create_dqn_belief_state(observations["you"], belief_filter.get_belief(), device)
     # print(belief_state.shape)
@@ -91,13 +95,14 @@ for i in range(num_episodes):
 
     episode_memory = ReplayMemory(1000)
     while env.agent_names:
-        print("timestep", env.timestep)
-        env.print_locations()
+        # print("timestep", env.timestep)
+        # env.print_locations()
         actions = {}
         for agent in env.agent_names:
             if agent == "you":
-                tensor_action = select_action(global_steps_done, observations[agent], bootstrap_policy, belief_state, policy_net, params, env, device)
+                tensor_action = select_action(global_steps_done, observations[agent], prev_action_tuple, bootstrap_policy, belief_state, policy_net, params, env, device)
                 actions[agent] = tensor_action.item()
+                prev_action_tuple = index_to_action(tensor_action.item())
             else:
                 actions[agent] = random_policy.get_action(observations[agent])
         global_steps_done += 1
@@ -137,7 +142,6 @@ for i in range(num_episodes):
     else:
         print(f"skipping episode {i} because neither agent won")
 
-    # print(len(memory))
     if len(memory) >= params.BATCH_SIZE:
         #####
         # Perform one step of the optimization (on the policy network)
@@ -156,15 +160,20 @@ for i in range(num_episodes):
         target_net.load_state_dict(target_net_state_dict)
         #####
     else:
+        if first_optimization:
+            print("starting first optimization because memory just exceeded batch size")
+            first_optimization = False
+        # print(f"Not starting optimization because memory ({len(memory)}) is smaller than batch size ({params.BATCH_SIZE})")
         loss = 0
         episode_avg_losses.append(loss)
 
 
     discounted_reward = rewards["you"] * params.GAMMA ** env.timestep
     episode_rewards.append(discounted_reward)
+    episode_eps.append(get_eps_threshold(global_steps_done, params))
     episode_timesteps.append(env.timestep)
 
-    plot_rewards(episode_rewards)
+    plot_rewards(episode_rewards, episode_eps)
     plot_loss(episode_avg_losses)
     # print(f"""DEBUG: i={i}, done={done}, rewards["you"]={rewards["you"]}, env.timestep={env.timestep}, discounted_reward={discounted_reward}""")
 
@@ -179,7 +188,7 @@ for i in range(num_episodes):
 save_file = os.path.join(save_dir, f'policy_final.pth')
 save_weights(policy_net, save_file)
 
-plot_rewards(episode_rewards, show_result=True, save_dir=save_dir)
+plot_rewards(episode_rewards, episode_eps, show_result=True, save_dir=save_dir)
 plot_loss(episode_avg_losses, show_result=True, save_dir=save_dir)
 
 rewards_path = os.path.join(save_dir, 'dqn.json')

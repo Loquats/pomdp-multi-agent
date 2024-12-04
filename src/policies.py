@@ -49,10 +49,12 @@ class SamplingHeuristicPolicy:
     def __str__(self):
         return "SamplingHeuristicPolicy"
 
-    def get_action(self, observation):
+    def get_action(self, observation, prev_action):
         # print(self.belief_filter) # for debugging, it is helpful to print the belief filter before the update happens
-        if self.prev_action:
-            self.belief_filter.update(observation, self.prev_action)
+        if prev_action:
+            self.belief_filter.update(observation, prev_action)
+        # if self.prev_action:
+        #     self.belief_filter.update(observation, self.prev_action)
 
         # get an action based on the current belief
         my_row, my_col, opp_row, opp_col = observation
@@ -106,13 +108,16 @@ class BeliefDQNPolicy(Policy):
         n_actions = len(MovementActions) * len(GazeActions)
         n_observations = num_rows * num_cols
 
-        if is_large_policy(filepath):
-            size = "large"
-        elif is_medium_policy(filepath):
-            size = "medium"
+        if is_conv_net(filepath):
+            self.policy_net = ConvDQN(n_observations, n_actions, None).to(self.device)
         else:
-            size = "small"
-        self.policy_net = DQN(n_observations, n_actions, size=size).to(self.device)
+            if is_large_policy(filepath):
+                size = "large"
+            elif is_medium_policy(filepath):
+                size = "medium"
+            else:
+                size = "small"
+            self.policy_net = SimpleDQN(n_observations, n_actions, size=size).to(self.device)
         self.policy_net.load_state_dict(torch.load(self.filepath))
 
         self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
@@ -126,7 +131,7 @@ class BeliefDQNPolicy(Policy):
         if self.prev_action:
             self.belief_filter.update(observation, self.prev_action)
 
-        belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), device)
+        belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), self.device)
         action_index = get_policy_action(belief_state, self.policy_net).item()
 
         self.prev_action = index_to_action(action_index)
@@ -137,3 +142,6 @@ def is_medium_policy(path):
 
 def is_large_policy(path):
     return path in ["results/dqn_2024_12_02_00:31:12/policy_final.pth"]
+
+def is_conv_net(path):
+    return "results/dqn_2024_12_03_00:56:28/" in path

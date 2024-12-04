@@ -15,9 +15,10 @@ print(f"is_ipython: {is_ipython}")
 if not is_databricks_cluster():
     plt.ion()
 
-def plot_rewards(episode_rewards, show_result=False, save_dir=None):
+def plot_rewards(episode_rewards, episode_eps, show_result=False, save_dir=None):
     plt.figure("rewards")
     rewards_t = torch.tensor(episode_rewards, dtype=torch.float)
+    eps_t = 100*torch.tensor(episode_eps, dtype=torch.float)
     if show_result:
         plt.title('Training Discounted Rewards')
     else:
@@ -26,6 +27,7 @@ def plot_rewards(episode_rewards, show_result=False, save_dir=None):
     plt.xlabel('Episode')
     plt.ylabel('Discounted Reward')
     plt.plot(rewards_t.numpy())
+    plt.plot(eps_t.numpy())
     # Take 100 episode averages and plot them too
     if len(rewards_t) >= 100:
         means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)

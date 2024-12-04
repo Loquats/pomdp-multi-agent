@@ -24,15 +24,14 @@ class DQNParams:
     BATCH_SIZE = 2**14 # 16,384 
     GAMMA = 0.99
     EPS_START = 0.9
-    EPS_END = 0.05
-    EPS_DECAY = 1000
+    EPS_END = 0.25
+    EPS_DECAY = 100000
     TAU = 0.005
     # LR = 1e-4
     LR = 3e-5
 
 # state = belief, next_state = next_belief
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 
 class ReplayMemory(object):
@@ -116,14 +115,16 @@ class SimpleDQN(nn.Module):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
-    
-def select_action(global_steps_done, observation, bootstrap_policy, state, policy_net, params, env, device):
+
+def get_eps_threshold(global_steps_done, params):
+    return params.EPS_END + (params.EPS_START - params.EPS_END) * math.exp(-1. * global_steps_done / params.EPS_DECAY)
+
+def select_action(global_steps_done, observation, prev_action, bootstrap_policy, state, policy_net, params, env, device):
     sample = random.random()
-    eps_threshold = params.EPS_END + (params.EPS_START - params.EPS_END) * \
-        math.exp(-1. * global_steps_done / params.EPS_DECAY)
+    eps_threshold = get_eps_threshold(global_steps_done, params)
     
     # get bootstrap action and maybe don't use it. Must always feed observaiton to update belief though!
-    bootstrap_action = bootstrap_policy.get_action(observation)
+    bootstrap_action = bootstrap_policy.get_action(observation, prev_action)
     if sample > eps_threshold:
         return get_policy_action(state, policy_net)
     else:

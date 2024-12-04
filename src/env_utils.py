@@ -105,7 +105,7 @@ def is_visible(gaze_mask, row, col):
 def in_gaze_box(my_row, my_col, my_gaze_action, target_row, target_col, num_rows, num_cols):    
     min_row, min_col, max_row, max_col = get_gaze_bounds(my_gaze_action, my_row, my_col, num_rows, num_cols)
     is_in_gaze_box = min_row <= target_row <= max_row and min_col <= target_col <= max_col
-    print("gaze bounds", min_row, min_col, max_row, max_col, is_in_gaze_box)
+    # print("gaze bounds", min_row, min_col, max_row, max_col, is_in_gaze_box)
     return is_in_gaze_box
 
 def index_to_action(index):

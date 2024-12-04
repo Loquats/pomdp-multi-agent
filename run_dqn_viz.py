@@ -13,7 +13,7 @@ print(env.action_space(env.agent_names[1]))
 print(f"Observations: {observations}")
 
 policies = {
-    "you": Policy.get("results/dqn_2024_12_02_00:31:12/policy_final.pth", env),
+    "you": Policy.get("results/dqn_2024_12_03_00:56:28/policy_final.pth", env),
     # "you": Policy.get("results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth", env),
     "opp": Policy.get("random", env),
 }
@@ -22,20 +22,20 @@ while env.agent_names:
     # env.print_locations() # helpful for debugging weird policies
     actions = {agent: policies[agent].get_action(observations[agent]) for agent in env.agent_names}
 
-    for agent, action in actions.items():
-        print(agent, index_to_action(action))
+    print(index_to_action(actions["you"]))
 
     observations, rewards, terminations, truncations, infos = env.step(actions)
 
     you_win = infos[env.you.name]["win"]
     opp_win = infos[env.opp.name]["win"]
-    if you_win and opp_win:
-        print("both win")
-    elif you_win:
-        print("you win")
-    elif opp_win:
-        print("opp win")
-    else:
-        print("neither win")
+
+if you_win and opp_win:
+    print("both win")
+elif you_win:
+    print("you win")
+elif opp_win:
+    print("opp win")
+else:
+    print("neither win")
 
 env.close()
