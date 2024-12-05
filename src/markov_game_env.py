@@ -12,28 +12,6 @@ from src.text_grid import TextGrid
 
 RENDER_FPS = 5
 
-# def make_env(render_mode=None):
-#     """
-#     The env function often wraps the environment in wrappers by default.
-#     You can find full documentation for these methods
-#     elsewhere in the developer documentation.
-#     """
-#     # internal_render_mode = render_mode if render_mode != "ansi" else "human"
-#     # env = raw_env(render_mode=internal_render_mode)
-
-#     env = CustomActionMaskedEnvironment(render_mode=render_mode)
-
-#     # This wrapper is only for environments which print results to the terminal
-#     if render_mode == "ansi":
-#         env = wrappers.CaptureStdoutWrapper(env)
-#     # this wrapper helps error handling for discrete action spaces
-#     # env = wrappers.AssertOutOfBoundsWrapper(env) # only works for AEC
-
-#     # Provides a wide vareity of helpful user errors
-#     # Strongly recommended
-#     # env = wrappers.OrderEnforcingWrapper(env)
-
-#     return env
 
 class InitialState(Enum):
     UNIFORM = "uniform"
@@ -57,7 +35,6 @@ class MarkovGameEnvironment(ParallelEnv):
         self.fully_observable = fully_observable
         assert render_mode in ["pygame", "text", "none"]
         self.render_mode = render_mode
-        # print(f"init env with render_mode: {self.render_mode}")
         self.timestep = None
         self.max_timesteps = max_timesteps
         self.initial_state = initial_state

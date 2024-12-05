@@ -1,0 +1,41 @@
+{
+    "num_iterations": 1,
+    "gamma": 0.95,
+    "you_policy_name": "heuristic_sample",
+    "opp_policy_name": "rollouts_greedy",
+    "wins": {
+        "you": 1,
+        "opp": 0,
+        "both": 0,
+        "neither": 0
+    },
+    "winrates": {
+        "you": 1.0,
+        "opp": 0.0,
+        "both": 0.0,
+        "neither": 0.0
+    },
+    "average_return": {
+        "you": 67.05370494984372,
+        "opp": -63.02494097246091
+    },
+    "outcomes": [
+        "you"
+    ],
+    "timesteps": {
+        "you": [
+            10
+        ],
+        "opp": [],
+        "both": [],
+        "neither": []
+    },
+    "returns": {
+        "you": [
+            67.05370494984372
+        ],
+        "opp": [
+            -63.02494097246091
+        ]
+    }
+}

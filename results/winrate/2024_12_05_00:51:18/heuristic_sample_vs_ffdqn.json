@@ -1,0 +1,41 @@
+{
+    "num_iterations": 1,
+    "gamma": 0.95,
+    "you_policy_name": "heuristic_sample",
+    "opp_policy_name": "ffdqn",
+    "wins": {
+        "you": 1,
+        "opp": 0,
+        "both": 0,
+        "neither": 0
+    },
+    "winrates": {
+        "you": 1.0,
+        "opp": 0.0,
+        "both": 0.0,
+        "neither": 0.0
+    },
+    "average_return": {
+        "you": 0.7054616722382033,
+        "opp": -0.6905413874132088
+    },
+    "outcomes": [
+        "you"
+    ],
+    "timesteps": {
+        "you": [
+            98
+        ],
+        "opp": [],
+        "both": [],
+        "neither": []
+    },
+    "returns": {
+        "you": [
+            0.7054616722382033
+        ],
+        "opp": [
+            -0.6905413874132088
+        ]
+    }
+}

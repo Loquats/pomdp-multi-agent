@@ -1,0 +1,41 @@
+{
+    "num_iterations": 1,
+    "gamma": 0.95,
+    "you_policy_name": "convdqn",
+    "opp_policy_name": "ffdqn",
+    "wins": {
+        "you": 0,
+        "opp": 0,
+        "both": 0,
+        "neither": 1
+    },
+    "winrates": {
+        "you": 0.0,
+        "opp": 0.0,
+        "both": 0.0,
+        "neither": 1.0
+    },
+    "average_return": {
+        "you": 0.0,
+        "opp": 0.0
+    },
+    "outcomes": [
+        "neither"
+    ],
+    "timesteps": {
+        "you": [],
+        "opp": [],
+        "both": [],
+        "neither": [
+            1002
+        ]
+    },
+    "returns": {
+        "you": [
+            0.0
+        ],
+        "opp": [
+            0.0
+        ]
+    }
+}

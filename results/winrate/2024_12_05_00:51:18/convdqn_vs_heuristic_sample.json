@@ -1,0 +1,41 @@
+{
+    "num_iterations": 1,
+    "gamma": 0.95,
+    "you_policy_name": "convdqn",
+    "opp_policy_name": "heuristic_sample",
+    "wins": {
+        "you": 1,
+        "opp": 0,
+        "both": 0,
+        "neither": 0
+    },
+    "winrates": {
+        "you": 1.0,
+        "opp": 0.0,
+        "both": 0.0,
+        "neither": 0.0
+    },
+    "average_return": {
+        "you": 3.0359880661819753e-05,
+        "opp": -2.9075677466797012e-05
+    },
+    "outcomes": [
+        "you"
+    ],
+    "timesteps": {
+        "you": [
+            294
+        ],
+        "opp": [],
+        "both": [],
+        "neither": []
+    },
+    "returns": {
+        "you": [
+            3.0359880661819753e-05
+        ],
+        "opp": [
+            -2.9075677466797012e-05
+        ]
+    }
+}

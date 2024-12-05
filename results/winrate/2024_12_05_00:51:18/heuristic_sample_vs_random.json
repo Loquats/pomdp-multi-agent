@@ -1,0 +1,41 @@
+{
+    "num_iterations": 1,
+    "gamma": 0.95,
+    "you_policy_name": "heuristic_sample",
+    "opp_policy_name": "random",
+    "wins": {
+        "you": 1,
+        "opp": 0,
+        "both": 0,
+        "neither": 0
+    },
+    "winrates": {
+        "you": 1.0,
+        "opp": 0.0,
+        "both": 0.0,
+        "neither": 0.0
+    },
+    "average_return": {
+        "you": 12.472442984528955,
+        "opp": -11.208654873684797
+    },
+    "outcomes": [
+        "you"
+    ],
+    "timesteps": {
+        "you": [
+            42
+        ],
+        "opp": [],
+        "both": [],
+        "neither": []
+    },
+    "returns": {
+        "you": [
+            12.472442984528955
+        ],
+        "opp": [
+            -11.208654873684797
+        ]
+    }
+}

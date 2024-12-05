@@ -53,16 +53,24 @@ def run_winrate(env, you_policy_name, opp_policy_name, num_iterations=100, verbo
             "opp": [],
         }
 
-        prev_action = None
-        while env.agent_names:
+        prev_actions = {"you": None, "opp": None}
+
+        if you_policy_name in SLOW_POLICIES or opp_policy_name in SLOW_POLICIES:
+            disable_tqdm = False
+        else:
+            disable_tqdm = True
+
+        for _ in tqdm(range(1000), desc="Game Progress", leave=False, disable=disable_tqdm):
+            if not env.agent_names:
+                break
             # env.print_locations() # helpful for debugging weird policies
-            actions = {agent: policies[agent].get_action(observations[agent], prev_action) for agent in env.agent_names}
-            prev_action = actions["you"]
+            actions = {agent: policies[agent].get_action(observations[agent], prev_actions[agent]) for agent in env.agent_names}
+            prev_actions = actions
 
             actions = {agent: action_to_index(action) for agent, action in actions.items()}
 
             if verbose:
-                print(prev_action)
+                print(prev_actions)
 
             observations, rewards, terminations, truncations, infos = env.step(actions)
 

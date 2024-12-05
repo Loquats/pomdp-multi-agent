@@ -4,15 +4,16 @@ from src.belief import DiscreteStateFilter
 from src.env_utils import GazeActions, MovementActions, action_to_index, index_to_action
 from abc import ABC, abstractmethod
 
+from tqdm import tqdm
 from gymnasium.spaces import Discrete
 import torch
 
 from src.policy_utils import *
 from src.mdp import BeliefStateMDP
 
-POLICIES = [
-    "random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn", "rollouts_sample", "rollouts_greedy"
-]
+POLICIES = ["random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn", "rollouts_sample", "rollouts_greedy"]
+
+FAST_POLICIES = ["random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn"]
 
 SLOW_POLICIES = ["rollouts_sample", "rollouts_greedy"]
 
@@ -40,9 +41,13 @@ class Policy(ABC):
         if name == "convdqn":
             return BeliefDQNPolicy("results/dqn_2024_12_03_00:56:28/policy_final.pth", my_row, my_col, env.num_rows, env.num_cols) # loss=0.5
         if name == "rollouts_sample":
-            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode='sample')
+            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=10, num_rollouts=50, bootstrap_mode='sample')
         if name == "rollouts_greedy":
-            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode="greedy")
+            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=10, num_rollouts=50, bootstrap_mode="greedy")
+        # if name == "rollouts_sample":
+        #     return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode='sample')
+        # if name == "rollouts_greedy":
+        #     return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode="greedy")
         
         raise Exception(f"{name} is not a policy!")
         
@@ -87,7 +92,8 @@ class PolicyWithRollouts(Policy):
         
         action_rewards = {index_to_action(i): [] for i in range(self.num_actions)}
 
-        for _ in range(self.num_rollouts):
+        for _ in tqdm(range(self.num_rollouts)):
+        # for _ in tqdm(range(self.num_rollouts)):
             # make_rollout_policy within the for loop because we need to reset the belief to self.belief
             rollout_policy = HeuristicPolicy(observation.my_row, observation.my_col, self.num_rows, self.num_cols, belief_filter=self.belief_filter, mode=self.bootstrap_mode)
             action, discounted_reward = rollout(self.mdp, observation, self.belief_filter, rollout_policy, self.depth)
