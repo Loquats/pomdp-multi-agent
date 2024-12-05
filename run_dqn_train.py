@@ -49,7 +49,7 @@ print(policy_net)
 print()
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=params.LR, amsgrad=True)
-memory = ReplayMemory(100_000)
+memory = ReplayMemory(1_000_000)
 
 global_steps_done = 0
 episode_rewards = []
@@ -58,7 +58,7 @@ episode_avg_losses = [] # the average loss of each episode
 episode_eps = []
 
 if torch.cuda.is_available():
-    num_episodes = 3000
+    num_episodes = 30000
     num_saves = 10
 elif torch.backends.mps.is_available():
     # macbook
