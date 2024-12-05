@@ -92,7 +92,7 @@ class PolicyWithRollouts(Policy):
         
         action_rewards = {index_to_action(i): [] for i in range(self.num_actions)}
 
-        for _ in tqdm(range(self.num_rollouts)):
+        for _ in range(self.num_rollouts):
         # for _ in tqdm(range(self.num_rollouts)):
             # make_rollout_policy within the for loop because we need to reset the belief to self.belief
             rollout_policy = HeuristicPolicy(observation.my_row, observation.my_col, self.num_rows, self.num_cols, belief_filter=self.belief_filter, mode=self.bootstrap_mode)
