@@ -1,3 +1,22 @@
+random vs PolicyWithRollouts(observations["you"].my_row, observations["you"].my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100)
+{'you': 82, 'opp': 13, 'both': 5, 'neither': 0}
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [18:04:07<00:00, 650.47s/it]
+{'you': 82, 'opp': 13, 'both': 5, 'neither': 0}
+winner is you: 0.82
+winner is opp: 0.13
+winner is both: 0.05
+winner is neither: 0.0
+mean timesteps for you: 51.76829268292683
+mean timesteps for opp: 11.615384615384615
+mean timesteps for both: 34.0
+/home/andy/anaconda3/envs/dqn/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/andy/anaconda3/envs/dqn/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+mean timesteps for neither: nan
+mean timesteps overall: 45.66
+
+
 running winrate for results/dqn_2024_12_03_00:56:28/policy_1499.pth vs random
 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [10:17<00:00,  1.62it/s]
 {'you': 180, 'opp': 590, 'both': 39, 'neither': 191}

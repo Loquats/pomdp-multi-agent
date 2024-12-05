@@ -232,7 +232,7 @@ def create_dqn_belief_state(observation, belief, device):
     Second channel is the belief
     1 is the batch dimension
     """
-    your_row, your_col, _, _ = observation
+    your_row, your_col = observation.my_row, observation.my_col
 
     channel2 = torch.from_numpy(belief).float()
     channel1 = torch.zeros_like(channel2)

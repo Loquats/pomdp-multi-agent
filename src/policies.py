@@ -10,6 +10,12 @@ import torch
 from src.policy_utils import *
 from src.mdp import BeliefStateMDP
 
+POLICIES = [
+    "random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn", "rollouts_sample", "rollouts_greedy"
+]
+
+SLOW_POLICIES = ["rollouts_sample", "rollouts_greedy"]
+
 class Policy(ABC):
 
     @abstractmethod
@@ -21,35 +27,53 @@ class Policy(ABC):
     #     pass
 
     @staticmethod
-    def get(name, env):
+    def get(name, env, my_row, my_col):
+        assert name in POLICIES, name
         if name == "random":
             return RandomPolicy(env.action_space())
-        if name == "heuristic":
-            return HeuristicPolicy(env.num_rows, env.num_cols, belief_filter=None)
-        return BeliefDQNPolicy(name, env.num_rows, env.num_cols)
+        if name == "heuristic_sample":
+            return HeuristicPolicy(my_row, my_col, env.num_rows, env.num_cols, belief_filter=None, mode="sample")
+        if name == "heuristic_greedy":
+            return HeuristicPolicy(my_row, my_col, env.num_rows, env.num_cols, belief_filter=None, mode="greedy")
+        if name == "ffdqn":
+            return BeliefDQNPolicy("results/dqn_2024_12_02_00:31:12/policy_final.pth", my_row, my_col, env.num_rows, env.num_cols) # loss=0.8
+        if name == "convdqn":
+            return BeliefDQNPolicy("results/dqn_2024_12_03_00:56:28/policy_final.pth", my_row, my_col, env.num_rows, env.num_cols) # loss=0.5
+        if name == "rollouts_sample":
+            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode='sample')
+        if name == "rollouts_greedy":
+            return PolicyWithRollouts(my_row, my_col, env.num_rows, env.num_cols, depth=15, num_rollouts=100, bootstrap_mode="greedy")
+        
+        raise Exception(f"{name} is not a policy!")
         
 
 class PolicyWithRollouts(Policy):
-    def __init__(self, my_row, my_col, num_rows, num_cols, depth, num_rollouts):
+    def __init__(self, my_row, my_col, num_rows, num_cols, depth, num_rollouts, bootstrap_mode):
+        self.num_rows = num_rows
+        self.num_cols = num_cols
         self.depth = depth
         self.num_rollouts = num_rollouts
+        self.bootstrap_mode = bootstrap_mode
         self.num_actions = len(MovementActions) * len(GazeActions)
         self.action_space = Discrete(self.num_actions)
         self.mdp = BeliefStateMDP(num_rows, num_cols)
         # the current belief!! always use this
         self.belief_filter = DiscreteStateFilter(my_row, my_col, num_rows, num_cols)
 
+    def __str__(self):
+        return f"PolicyWithRollouts({self.depth}, {self.num_rollouts}, {self.bootstrap_mode})"
+
     # def reset(self, observation):
     #     # raise Exception("dunno how to reset my_row, my_col")
     #     self.belief_filter = DiscreteStateFilter(observation.my_row, observation.my_col, self.num_rows, self.num_cols)
 
-    def make_rollout_policy(self):
-        # rollout_policies = [
-        #     RandomPolicy(self.action_space),
-        #     HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode="greedy"),
-        # ]
-        # return StochasticMixedPolicy(rollout_policies, [0.01, 0.99])
-        return HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode="greedy")
+    # def make_rollout_policy(self):
+    #     # rollout_policies = [
+    #     #     RandomPolicy(self.action_space),
+    #     #     HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode="greedy"),
+    #     # ]
+    #     # return StochasticMixedPolicy(rollout_policies, [0.01, 0.99])
+    #     return HeuristicPolicy(None, None, None, None, belief_filter=self.belief_filter, mode=self.bootstrap_mode)
 
     def get_action(self, observation, prev_action):
         if prev_action:
@@ -65,7 +89,7 @@ class PolicyWithRollouts(Policy):
 
         for _ in range(self.num_rollouts):
             # make_rollout_policy within the for loop because we need to reset the belief to self.belief
-            rollout_policy = self.make_rollout_policy()
+            rollout_policy = HeuristicPolicy(observation.my_row, observation.my_col, self.num_rows, self.num_cols, belief_filter=self.belief_filter, mode=self.bootstrap_mode)
             action, discounted_reward = rollout(self.mdp, observation, self.belief_filter, rollout_policy, self.depth)
             action_rewards[action].append(discounted_reward)
         
@@ -136,7 +160,7 @@ class HeuristicPolicy:
     #     self.belief_filter = self._reset_belief_filter
 
     def __str__(self):
-        return "SamplingHeuristicPolicy"
+        return f"SamplingHeuristicPolicy({self.mode})"
 
     def get_action(self, observation, prev_action):
         # print(self.belief_filter) # for debugging, it is helpful to print the belief filter before the update happens
@@ -152,6 +176,8 @@ class HeuristicPolicy:
             state = self.belief_filter.sample()
             target_row = state.opp_row
             target_col = state.opp_col
+        else:
+            raise Exception(f"no such mode {self.mode} for HeuristicPolicy")
 
         move_actions = []
         if my_row == target_row and my_col == target_col:
@@ -186,7 +212,7 @@ class HeuristicPolicy:
 
 class BeliefDQNPolicy(Policy):
     
-    def __init__(self, filepath, num_rows, num_cols):
+    def __init__(self, filepath, my_row, my_col, num_rows, num_cols):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else
             "mps" if torch.backends.mps.is_available() else
@@ -210,7 +236,7 @@ class BeliefDQNPolicy(Policy):
                 size = "small"
             self.policy_net = SimpleDQN(n_observations, n_actions, size=size).to(self.device)
         self.policy_net.load_state_dict(torch.load(self.filepath))
-        self.belief_filter = DiscreteStateFilter(num_rows, num_cols)
+        self.belief_filter = DiscreteStateFilter(my_row, my_col, num_rows, num_cols)
 
     # def reset(self):
     #     self.belief_filter = DiscreteStateFilter(self.num_rows, self.num_cols)
@@ -222,9 +248,12 @@ class BeliefDQNPolicy(Policy):
         if prev_action:
             self.belief_filter = update(self.belief_filter, observation, prev_action)
 
-        belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), self.device)
+        if is_conv_net(self.filepath):
+            belief_state = create_dqn_belief_state(observation, self.belief_filter.get_belief(), self.device)
+        else:
+            belief_state = torch.tensor(self.belief_filter.get_belief_vector(), dtype=torch.float32, device=self.device).unsqueeze(0)
         action_index = get_policy_action(belief_state, self.policy_net).item()
-        return action_index
+        return index_to_action(action_index)
 
 def is_medium_policy(path):
     return path in ["results/databricks/dqn_2024_12_02_00:05:51/policy_final.pth"]
