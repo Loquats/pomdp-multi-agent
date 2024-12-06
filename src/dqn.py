@@ -22,7 +22,7 @@ class DQNParams:
 
     # BATCH_SIZE = 128
     BATCH_SIZE = 2**14 # 16,384 
-    GAMMA = 0.99
+    GAMMA = 0.95
     EPS_START = 0.9
     EPS_END = 0.25
     EPS_DECAY = 100000
