@@ -11,11 +11,11 @@ import torch
 from src.policy_utils import *
 from src.mdp import BeliefStateMDP
 
-POLICIES = ["random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn", "rollouts_sample", "rollouts_greedy"]
 
-FAST_POLICIES = ["random", "heuristic_sample", "heuristic_greedy", "ffdqn", "convdqn"]
-
+FAST_POLICIES = ["random", "heuristic_sample", "heuristic_greedy"]
 SLOW_POLICIES = ["rollouts_sample", "rollouts_greedy"]
+GPU_POLICIES = ["ffdqn", "convdqn"]
+POLICIES = FAST_POLICIES + GPU_POLICIES + SLOW_POLICIES
 
 class Policy(ABC):
 
